@@ -6,6 +6,7 @@
 
 pub mod commands;
 pub mod config;
+pub mod paths;
 pub mod provider;
 pub mod scheduler;
 pub mod state;

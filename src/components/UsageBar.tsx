@@ -3,15 +3,21 @@ interface UsageBarProps {
   availablePercent: number;
   /** When true (stale), render muted. */
   muted?: boolean;
+  /**
+   * Brand accent class for the bar fill (e.g. "bg-teal-500").
+   * Defaults to the app's neutral monochrome fill.
+   */
+  accent?: string;
 }
 
 export function UsageBar({
   availablePercent,
   muted = false,
+  accent,
 }: UsageBarProps) {
   const pct = Math.max(0, Math.min(100, availablePercent));
 
-  let barClass = "bg-zinc-800 dark:bg-zinc-200";
+  let barClass = accent ?? "bg-zinc-800 dark:bg-zinc-200";
   if (muted) {
     barClass = "bg-zinc-300 dark:bg-zinc-700";
   }

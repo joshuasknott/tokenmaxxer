@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { AppConfig, Snapshot } from "./types";
+import type { AppConfig, ProviderKind, Snapshot } from "./types";
 import {
   getSnapshot,
   onUsageUpdate,
@@ -13,6 +13,13 @@ import { AddAccountWizard } from "./components/AddAccountWizard";
 import { SummaryTiles } from "./components/SummaryTiles";
 import { UsageChart } from "./components/UsageChart";
 import { Logo } from "./components/Logo";
+import { ProviderLogo } from "./components/ProviderLogo";
+import { providerStyle } from "./lib/providerStyle";
+import { MarketingPage } from "./MarketingPage";
+
+type TauriWindow = Window & {
+  __TAURI_INTERNALS__?: unknown;
+};
 
 interface UsageEvent {
   timestamp: number;
@@ -22,6 +29,12 @@ interface UsageEvent {
 }
 
 export default function App() {
+  const isTauri = Boolean((window as TauriWindow).__TAURI_INTERNALS__);
+
+  return isTauri ? <DesktopApp /> : <MarketingPage />;
+}
+
+function DesktopApp() {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [snapshots, setSnapshots] = useState<Record<string, Snapshot>>({});
   const [showWizard, setShowWizard] = useState(false);
@@ -114,11 +127,23 @@ export default function App() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 space-y-6">
       {/* Header bar */}
-      <header className="flex items-center justify-between">
-        <Logo size="md" />
-        <button onClick={() => setShowWizard(true)} className="btn-primary">
-          + Add Account
-        </button>
+      <header className="flex items-center justify-between border-b border-zinc-200 pb-4 dark:border-zinc-800">
+        <div className="flex items-center gap-3">
+          <Logo size="md" />
+          {accounts.length > 0 && (
+            <span
+              className="hidden text-xs sm:inline"
+              style={{ color: "var(--text-muted)" }}
+            >
+              · {accounts.length} {accounts.length === 1 ? "account" : "accounts"}
+            </span>
+          )}
+        </div>
+        {accounts.length > 0 && (
+          <button onClick={() => setShowWizard(true)} className="btn-primary">
+            + Add Account
+          </button>
+        )}
       </header>
 
       {/* Main Analytics Section (Interactive Chart) */}
@@ -192,20 +217,51 @@ export default function App() {
   );
 }
 
+const FIRST_RUN_PROVIDERS: ProviderKind[] = [
+  "codex",
+  "antigravity",
+  "github_copilot",
+  "deepseek",
+  "z_ai",
+];
+
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
-    <div
-      className="card p-12 text-center border-dashed border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-950"
-    >
-      <p className="mb-1 font-bold text-sm text-zinc-900 dark:text-zinc-100">No accounts tracked</p>
-      <p
-        className="mb-4 text-xs text-zinc-500 dark:text-zinc-400"
-      >
-        Add your Antigravity, Codex, DeepSeek, Z.ai or Copilot credentials to monitor token usage and cost.
-      </p>
-      <button onClick={onAdd} className="btn-primary mx-auto">
-        Add your first account
-      </button>
+    <div className="card overflow-hidden border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="px-8 py-14 text-center">
+        <h3 className="mx-auto max-w-md text-lg font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">
+          Track every AI limit in one calm dashboard
+        </h3>
+        <p
+          className="mx-auto mt-2 max-w-sm text-xs"
+          style={{ color: "var(--text-muted)" }}
+        >
+          Add your Codex, Antigravity, Copilot, DeepSeek or Z.ai credentials to
+          monitor token usage, cost and reset windows.
+        </p>
+
+        {/* Provider icon row — real brand artwork */}
+        <div className="mt-8 flex items-center justify-center gap-3">
+          {FIRST_RUN_PROVIDERS.map((kind) => {
+            const style = providerStyle(kind);
+            return (
+              <span
+                key={kind}
+                className={`flex h-11 w-11 items-center justify-center rounded-xl ${style.chipBg}`}
+                title={style.label}
+              >
+                <ProviderLogo kind={kind} className="h-6 w-6" />
+              </span>
+            );
+          })}
+        </div>
+
+        <div className="mt-8 flex justify-center">
+          <button onClick={onAdd} className="btn-primary">
+            Add your first account
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

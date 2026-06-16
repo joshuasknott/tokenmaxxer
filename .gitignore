@@ -14,7 +14,9 @@ src-tauri/target/
 *.p12
 *.pfx
 vault.enc
+vault.index.json
 config.json
+history.json
 history.jsonl
 antigravity-token.tmp.json
 
@@ -33,3 +35,5 @@ pnpm-debug.log*
 Thumbs.db
 .idea/
 .vscode/
+
+.vercel

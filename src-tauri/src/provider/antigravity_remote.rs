@@ -132,6 +132,7 @@ impl AntigravityRemoteProvider {
             .post(FETCH_MODELS_URL)
             .bearer_auth(access_token)
             .header("User-Agent", "antigravity")
+            .body("")
             .send()
             .await?;
 

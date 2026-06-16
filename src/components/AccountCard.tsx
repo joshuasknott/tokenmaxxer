@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { AccountConfig, Snapshot } from "../types";
 import { UsageBar } from "./UsageBar";
+import { ProviderLogo } from "./ProviderLogo";
 import {
   availablePercent,
   formatAgo,
@@ -53,24 +54,30 @@ export function AccountCard({
         stale ? "ring-1 ring-zinc-400/30" : ""
       }`}
     >
-      {/* Sleek monochrome top line indicator */}
-      <div className={`h-1 brand-rule bg-zinc-800 dark:bg-zinc-200`} />
+      {/* Brand-colored top accent line */}
+      <div className={`h-1 brand-rule ${style.accentBar}`} />
 
       <div className="p-4">
         {/* Header row */}
         <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="truncate font-semibold text-sm">
-                {snapshot?.accountDetail ?? account.label}
-              </span>
-              <span className="pill">{style.label}</span>
-            </div>
-            <div
-              className="mt-0.5 truncate text-[11px]"
-              style={{ color: "var(--text-muted)" }}
+          <div className="flex min-w-0 items-center gap-3">
+            <span
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${style.chipBg}`}
             >
-              {snapshot?.planName ?? account.label}
+              <ProviderLogo kind={account.provider} className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="truncate font-semibold text-sm">
+                  {snapshot?.accountDetail ?? account.label}
+                </span>
+              </div>
+              <div
+                className="mt-0.5 truncate text-[11px]"
+                style={{ color: "var(--text-muted)" }}
+              >
+                {snapshot?.planName ?? style.tagline}
+              </div>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1">
@@ -89,7 +96,7 @@ export function AccountCard({
 
           {showProgress && avail !== null && (
             <div className="space-y-1">
-              <UsageBar availablePercent={avail} muted={stale} />
+              <UsageBar availablePercent={avail} muted={stale} accent={style.accentBar} />
               {headline && (
                 <div
                   className="flex items-center justify-between text-[10px]"
@@ -128,7 +135,7 @@ export function AccountCard({
                       <span>{w.label}</span>
                       <span className="tnum">{roundPercent(availablePercent(w.usedPercent))}%</span>
                     </div>
-                    <UsageBar availablePercent={availablePercent(w.usedPercent)} muted={stale} />
+                    <UsageBar availablePercent={availablePercent(w.usedPercent)} muted={stale} accent={style.accentBar} />
 
                     {/* Per-model breakdown if available (Antigravity/Z.ai) */}
                     {w.models && w.models.length > 0 && (
@@ -147,7 +154,7 @@ export function AccountCard({
                                 </span>
                               </div>
                               {mAvail !== null && (
-                                <UsageBar availablePercent={mAvail} muted={stale} />
+                                <UsageBar availablePercent={mAvail} muted={stale} accent={style.accentBar} />
                               )}
                             </div>
                           );

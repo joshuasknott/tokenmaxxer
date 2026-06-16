@@ -1,0 +1,77 @@
+name: Platform vault verification
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "codex/platform-vault-verify*"
+
+jobs:
+  verify:
+    name: Verify ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-latest
+          - macos-latest
+          - ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Linux desktop and Secret Service dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            dbus-x11 \
+            gnome-keyring \
+            libayatana-appindicator3-dev \
+            libdbus-1-dev \
+            librsvg2-dev \
+            libwebkit2gtk-4.1-dev \
+            pkg-config
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Tauri app
+        run: pnpm tauri build --no-bundle
+
+      - name: Run default Rust tests
+        working-directory: src-tauri
+        run: cargo test
+
+      - name: Verify macOS Keychain persistence
+        if: runner.os == 'macOS'
+        working-directory: src-tauri
+        env:
+          TOKENMAXXER_RUN_NATIVE_KEYRING_TESTS: "1"
+        run: cargo test native_keyring_round_trips_when_enabled
+
+      - name: Verify Linux Secret Service persistence
+        if: runner.os == 'Linux'
+        working-directory: src-tauri
+        run: |
+          dbus-run-session -- bash -lc '
+            gnome-keyring-daemon --start --components=secrets
+            TOKENMAXXER_RUN_NATIVE_KEYRING_TESTS=1 cargo test native_keyring_round_trips_when_enabled
+          '

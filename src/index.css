@@ -165,3 +165,226 @@ body {
 *::-webkit-scrollbar-track {
   background: transparent;
 }
+
+.marketing-page {
+  color-scheme: dark;
+  background:
+    linear-gradient(180deg, #0e1114 0%, #12161a 42%, #0e1114 100%);
+}
+
+.marketing-page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(99, 102, 241, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.04) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.8), transparent 58%);
+}
+
+.marketing-page > * {
+  position: relative;
+  z-index: 1;
+}
+
+.marketing-primary,
+.marketing-secondary,
+.marketing-header-button {
+  display: inline-flex;
+  min-height: 54px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  border-radius: 8px;
+  padding: 0.9rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease,
+    background-color 0.16s ease;
+}
+
+.marketing-primary {
+  border: 1px solid rgba(129, 140, 248, 0.86);
+  background: linear-gradient(180deg, #818cf8 0%, #6366f1 100%);
+  color: #ffffff;
+}
+
+.marketing-primary:hover,
+.marketing-secondary:hover,
+.marketing-header-button:hover {
+  transform: translateY(-1px);
+}
+
+.marketing-secondary {
+  border: 1px solid rgba(113, 113, 122, 0.55);
+  background-color: rgba(9, 9, 11, 0.34);
+  color: #fafafa;
+}
+
+.marketing-secondary:hover {
+  border-color: rgba(212, 212, 216, 0.72);
+  background-color: rgba(24, 24, 27, 0.86);
+}
+
+.marketing-header-button {
+  min-height: 44px;
+  border: 1px solid rgba(99, 102, 241, 0.76);
+  background-color: rgba(99, 102, 241, 0.1);
+  color: #c7d2fe;
+  padding: 0.75rem 1rem;
+  font-size: 0.82rem;
+}
+
+.hero-shell {
+  overflow: hidden;
+  min-height: min(920px, calc(100svh - 1px));
+}
+
+.app-window {
+  transform-origin: top center;
+}
+
+.dashboard-control {
+  min-height: 34px;
+  border-radius: 6px;
+  border: 1px solid #3f3f46;
+  background: rgba(9, 9, 11, 0.4);
+  padding: 0.45rem 0.75rem;
+  color: #d4d4d8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.dashboard-panel {
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.24);
+  padding: 1rem;
+}
+
+.security-terminal {
+  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.38);
+}
+
+.download-band {
+  background:
+    linear-gradient(135deg, rgba(99, 102, 241, 0.18), transparent 42%),
+    linear-gradient(180deg, #12161b 0%, #0d1014 100%);
+}
+
+.download-card {
+  min-height: 248px;
+  border: 1px solid rgba(63, 63, 70, 0.72);
+  border-radius: 8px;
+  background: rgba(9, 9, 11, 0.38);
+  padding: 1.25rem;
+}
+
+.download-card-icon {
+  display: inline-flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(113, 113, 122, 0.45);
+  border-radius: 8px;
+  background: rgba(24, 24, 27, 0.7);
+  color: #e4e4e7;
+  font-size: 1.35rem;
+}
+
+.download-status-available,
+.download-status-missing {
+  display: inline-flex;
+  min-height: 1.7rem;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.download-status-available {
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  background: rgba(16, 185, 129, 0.1);
+  color: #6ee7b7;
+}
+
+.download-status-missing {
+  border: 1px solid rgba(161, 161, 170, 0.2);
+  background: rgba(82, 82, 91, 0.12);
+  color: #a1a1aa;
+}
+
+.download-action {
+  display: inline-flex;
+  width: 100%;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  border: 1px solid rgba(129, 140, 248, 0.7);
+  border-radius: 8px;
+  background: rgba(99, 102, 241, 0.18);
+  color: #e0e7ff;
+  font-size: 0.88rem;
+  font-weight: 800;
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease,
+    background-color 0.16s ease;
+}
+
+.download-action:hover {
+  transform: translateY(-1px);
+  border-color: rgba(165, 180, 252, 0.88);
+  background: rgba(99, 102, 241, 0.28);
+}
+
+.download-action-disabled,
+.download-action-disabled:hover {
+  cursor: not-allowed;
+  transform: none;
+  border-color: rgba(113, 113, 122, 0.35);
+  background: rgba(39, 39, 42, 0.46);
+  color: #71717a;
+}
+
+@media (max-width: 1023px) {
+  .hero-shell {
+    min-height: auto;
+  }
+
+  .hero-preview {
+    min-height: 600px;
+  }
+}
+
+@media (max-width: 767px) {
+  .hero-preview {
+    min-height: 780px;
+  }
+
+  .app-window {
+    position: relative;
+  }
+}
+
+@media (max-width: 420px) {
+  .marketing-primary,
+  .marketing-secondary {
+    width: 100%;
+  }
+}

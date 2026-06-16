@@ -1,10 +1,9 @@
 //! Plaintext app config — account labels, provider kinds, poll interval.
 //! Holds no secrets; those live in the encrypted vault.
 
-use std::path::PathBuf;
-
 use serde::{Deserialize, Serialize};
 
+use crate::paths;
 use crate::provider::registry::parse_kind;
 use crate::provider::ProviderKind;
 
@@ -54,15 +53,8 @@ impl Default for AppConfig {
 }
 
 impl AppConfig {
-    fn path() -> Result<PathBuf, std::io::Error> {
-        let base = dirs::data_dir().ok_or_else(|| {
-            std::io::Error::new(std::io::ErrorKind::NotFound, "no data dir")
-        })?;
-        Ok(base.join("tokenmaxxer").join("config.json"))
-    }
-
     pub fn load() -> std::io::Result<AppConfig> {
-        let path = Self::path()?;
+        let path = paths::config_path()?;
         if !path.exists() {
             return Ok(AppConfig::default());
         }
@@ -71,7 +63,7 @@ impl AppConfig {
     }
 
     pub fn save(&self) -> std::io::Result<()> {
-        let path = Self::path()?;
+        let path = paths::config_path()?;
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }

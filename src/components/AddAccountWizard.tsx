@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { ProviderDescriptor, ProviderKind } from "../types";
 import { addAccount, listProviders } from "../lib/tauri";
+import { ProviderLogo } from "./ProviderLogo";
+import { providerStyle } from "../lib/providerStyle";
 
 interface AddAccountWizardProps {
   onClose: () => void;
@@ -66,24 +68,34 @@ export function AddAccountWizard({ onClose, onAdded }: AddAccountWizardProps) {
 
         {step === "pick" && (
           <div className="space-y-2">
-            {providers.map((p) => (
-              <button
-                key={p.kind}
-                onClick={() => {
-                  setProvider(p.kind);
-                  setStep("credentials");
-                }}
-                className="block w-full rounded-lg p-3 text-left transition bg-zinc-50 dark:bg-zinc-900/40 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-800"
-              >
-                <div className="font-semibold text-xs text-zinc-900 dark:text-zinc-100">{p.displayName}</div>
-                <div
-                  className="text-[11px] mt-0.5"
-                  style={{ color: "var(--text-muted)" }}
+            {providers.map((p) => {
+              const style = providerStyle(p.kind);
+              return (
+                <button
+                  key={p.kind}
+                  onClick={() => {
+                    setProvider(p.kind);
+                    setStep("credentials");
+                  }}
+                  className="flex w-full items-center gap-3 rounded-lg p-3 text-left transition bg-zinc-50 dark:bg-zinc-900/40 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-800"
                 >
-                  {p.credentialDescription}
-                </div>
-              </button>
-            ))}
+                  <span
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${style.chipBg}`}
+                  >
+                    <ProviderLogo kind={p.kind} className="h-5 w-5" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block font-semibold text-xs text-zinc-900 dark:text-zinc-100">{p.displayName}</span>
+                    <span
+                      className="block text-[11px] mt-0.5"
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      {p.credentialDescription}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
             {providers.length === 0 && (
               <p
                 className="text-xs text-zinc-400 text-center py-4"

@@ -1,19 +1,19 @@
 //! Polling scheduler and persistent history ledger.
 
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use tauri::{AppHandle, Emitter, Manager};
-use tokio::sync::Mutex;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use tauri::{AppHandle, Emitter, Manager};
+use tokio::sync::Mutex;
 
+use crate::paths;
 use crate::provider::registry;
-use crate::provider::{CostEstimate, ProviderError, Snapshot};
 #[allow(unused_imports)]
 use crate::provider::Provider;
+use crate::provider::{CostEstimate, ProviderError, Snapshot};
 use crate::state::AppState;
 
 /// Opaque history event. Saves token usage and cost increments.
@@ -32,15 +32,10 @@ pub type SnapshotCache = Arc<Mutex<HashMap<String, Snapshot>>>;
 /// Capped persistent history of usage events.
 pub type SnapshotHistory = Arc<Mutex<Vec<UsageEvent>>>;
 
-fn history_path() -> PathBuf {
-    dirs::data_dir()
-        .unwrap_or_default()
-        .join("tokenmaxxer")
-        .join("history.json")
-}
-
 pub fn load_history() -> Vec<UsageEvent> {
-    let path = history_path();
+    let Ok(path) = paths::history_path() else {
+        return Vec::new();
+    };
     if !path.exists() {
         return Vec::new();
     }
@@ -49,7 +44,9 @@ pub fn load_history() -> Vec<UsageEvent> {
 }
 
 pub fn save_history(events: &[UsageEvent]) {
-    let path = history_path();
+    let Ok(path) = paths::history_path() else {
+        return;
+    };
     if let Some(parent) = path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }
@@ -94,8 +91,7 @@ pub fn spawn(app: AppHandle) {
 
                 let provider = registry::make(kind);
                 let result = provider.fetch(&account.id, &creds).await;
-                let snapshot =
-                    materialize_snapshot_async(&app, &account.id, result).await;
+                let snapshot = materialize_snapshot_async(&app, &account.id, result).await;
 
                 // Compare and record incremental usage to history.
                 if let Some(prev) = previous {
@@ -104,7 +100,9 @@ pub fn spawn(app: AppHandle) {
                         let mut diff_gbp = 0.0;
 
                         if snapshot.provider_kind.as_deref() == Some("deepseek") {
-                            if let (Some(prev_bal), Some(curr_bal)) = (prev.balance_gbp, snapshot.balance_gbp) {
+                            if let (Some(prev_bal), Some(curr_bal)) =
+                                (prev.balance_gbp, snapshot.balance_gbp)
+                            {
                                 let diff = prev_bal - curr_bal;
                                 if diff > 0.0001 {
                                     diff_gbp = diff;
@@ -140,7 +138,8 @@ pub fn spawn(app: AppHandle) {
                                 tokens_used: diff_tokens,
                                 cost_gbp: diff_gbp,
                             };
-                            let history: SnapshotHistory = app.state::<SnapshotHistory>().inner().clone();
+                            let history: SnapshotHistory =
+                                app.state::<SnapshotHistory>().inner().clone();
                             let mut guard = history.lock().await;
                             guard.push(event);
                             save_history(&guard);
@@ -164,7 +163,10 @@ async fn materialize_snapshot_async(
     let cache: SnapshotCache = app.state::<SnapshotCache>().inner().clone();
     match result {
         Ok(snap) => {
-            cache.lock().await.insert(account_id.to_string(), snap.clone());
+            cache
+                .lock()
+                .await
+                .insert(account_id.to_string(), snap.clone());
             snap
         }
         Err(e) => {
