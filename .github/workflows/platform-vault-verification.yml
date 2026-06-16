@@ -30,6 +30,7 @@ jobs:
             build-essential \
             dbus-x11 \
             gnome-keyring \
+            libsecret-tools \
             libayatana-appindicator3-dev \
             libdbus-1-dev \
             librsvg2-dev \
@@ -72,6 +73,10 @@ jobs:
         working-directory: src-tauri
         run: |
           dbus-run-session -- bash -lc '
-            gnome-keyring-daemon --start --components=secrets
+            export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp/runtime-${UID}}"
+            mkdir -p "$XDG_RUNTIME_DIR"
+            chmod 700 "$XDG_RUNTIME_DIR"
+            eval "$(printf "\n" | gnome-keyring-daemon --unlock --components=secrets)"
+            secret-tool store --label="tokenmaxxer-ci-probe" tokenmaxxer ci <<< "probe"
             TOKENMAXXER_RUN_NATIVE_KEYRING_TESTS=1 cargo test native_keyring_round_trips_when_enabled
           '

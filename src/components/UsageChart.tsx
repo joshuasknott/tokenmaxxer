@@ -30,7 +30,7 @@ export function UsageChart({ events, period }: UsageChartProps) {
     const oneHour = 60 * 60 * 1000;
     const oneDay = 24 * oneHour;
 
-    let buckets: { label: string; start: number; end: number; tokens: number; cost: number }[] = [];
+    const buckets: { label: string; start: number; end: number; tokens: number; cost: number }[] = [];
 
     if (period === "day") {
       // Last 24 hours, grouped by hour
@@ -76,7 +76,7 @@ export function UsageChart({ events, period }: UsageChartProps) {
         startDate.setDate(1);
         startDate.setHours(0, 0, 0, 0);
 
-        let curr = new Date(startDate);
+        const curr = new Date(startDate);
         while (curr.getTime() <= now) {
           const start = curr.getTime();
           const monthLabel = curr.toLocaleDateString([], { month: "short", year: "2-digit" });

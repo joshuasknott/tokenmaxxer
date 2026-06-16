@@ -4,7 +4,7 @@
 export function formatCountdown(resetsAtIso: string): string {
   const target = new Date(resetsAtIso).getTime();
   const now = Date.now();
-  let diffMs = target - now;
+  const diffMs = target - now;
   if (diffMs <= 0) return "resets now";
 
   const totalMinutes = Math.round(diffMs / 60000);
@@ -42,11 +42,11 @@ export function roundPercent(n: number): number {
   return Math.round(n);
 }
 
-/** Format a GBP amount: £1.23, £12, £0.04. Drops pence when large. */
+/** Format a GBP amount: GBP 1.23, GBP 12, GBP 0.04. Drops pence when large. */
 export function formatGbp(n: number): string {
-  if (!isFinite(n) || n <= 0) return "£0";
-  if (n >= 100) return `£${Math.round(n)}`;
-  return `£${n.toFixed(2)}`;
+  if (!isFinite(n) || n <= 0) return "\u00a30";
+  if (n >= 100) return `\u00a3${Math.round(n)}`;
+  return `\u00a3${n.toFixed(2)}`;
 }
 
 /** Format a token count compactly: 1.2M, 340K, 980. */
@@ -59,7 +59,7 @@ export function formatTokens(n: number): string {
 
 /**
  * Convert a "used percent" (fraction of window consumed) into an "available
- * percent" — the UI shows availability, which empties as you consume. 100%
+ * percent" -- the UI shows availability, which empties as you consume. 100%
  * available = full bar; 0% available = empty bar.
  */
 export function availablePercent(usedPercent: number): number {

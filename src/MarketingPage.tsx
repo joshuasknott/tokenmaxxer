@@ -18,9 +18,6 @@ import {
   GeminiLogo,
   GithubCopilotLogo,
   ZaiLogo,
-  OpenaiLogo,
-  ClaudeLogo,
-  OpencodeLogo,
 } from "./components/ProviderLogo";
 import type { AccountConfig, ProviderKind, Snapshot } from "./types";
 import { AccountCard } from "./components/AccountCard";
@@ -68,10 +65,7 @@ const compatibleProviders = [
   { name: "Codex", Icon: CodexLogo },
   { name: "Google Gemini & Antigravity", Icon: GeminiLogo },
   { name: "GitHub Copilot Student", Icon: GithubCopilotLogo },
-  { name: "OpenCode", Icon: OpencodeLogo },
   { name: "Z.ai", Icon: ZaiLogo },
-  { name: "OpenAI API", Icon: OpenaiLogo },
-  { name: "Anthropic Claude API", Icon: ClaudeLogo },
   { name: "DeepSeek API", Icon: DeepSeekLogo },
 ];
 
@@ -658,7 +652,7 @@ function SecuritySection() {
                 <div>
                   <h4 className="text-sm font-bold text-white">Hardware-backed Encryption</h4>
                   <p className="mt-1 text-xs leading-relaxed text-zinc-400">
-                    Your credentials are locked in your operating system's native secure enclave (macOS Keychain, Windows Credential Manager, or Linux Secret Service).
+                    Your credentials stay in local secure storage: macOS Keychain, a DPAPI-encrypted Windows vault, or Linux Secret Service.
                   </p>
                 </div>
               </div>
