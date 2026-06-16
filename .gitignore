@@ -4,6 +4,7 @@ node_modules/
 # Frontend / Tauri build output
 dist/
 src-tauri/target/
+release-artifacts/
 
 # Local environment and secrets
 .env

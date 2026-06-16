@@ -27,7 +27,10 @@ import { Logo } from "./components/Logo";
 
 const SOURCE_URL = "https://github.com/joshuasknott/tokenmaxxer";
 const RELEASES_URL = `${SOURCE_URL}/releases`;
-const WINDOWS_DOWNLOAD_URL = "/downloads/TokenMaxxer_0.1.0_x64-setup.exe";
+const RELEASE_TAG_URL = `${SOURCE_URL}/releases/download/v0.1.0`;
+const WINDOWS_DOWNLOAD_URL = `${RELEASE_TAG_URL}/TokenMaxxer_0.1.0_x64-setup.exe`;
+const MACOS_DOWNLOAD_URL = `${RELEASE_TAG_URL}/TokenMaxxer_0.1.0_universal.dmg`;
+const LINUX_DOWNLOAD_URL = `${RELEASE_TAG_URL}/TokenMaxxer_0.1.0_amd64.AppImage`;
 
 type DownloadOption = {
   platform: string;
@@ -48,15 +51,15 @@ const downloadOptions: DownloadOption[] = [
   {
     platform: "macOS",
     format: "Universal DMG and .app",
-    detail: "Built by the release workflow for Intel and Apple Silicon Macs.",
-    href: null,
+    detail: "Universal build for Intel and Apple Silicon Macs.",
+    href: MACOS_DOWNLOAD_URL,
     Icon: FaApple,
   },
   {
     platform: "Linux",
     format: "AppImage and .deb",
-    detail: "Built by the release workflow on Ubuntu.",
-    href: null,
+    detail: "AppImage download, with .deb also attached to the release.",
+    href: LINUX_DOWNLOAD_URL,
     Icon: FaLinux,
   },
 ];
