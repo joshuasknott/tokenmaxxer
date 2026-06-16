@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Frontend / Tauri build output
+dist/
+src-tauri/target/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+vault.enc
+config.json
+history.jsonl
+antigravity-token.tmp.json
+
+# Generated caches
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
