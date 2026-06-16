@@ -34,6 +34,7 @@
     "longDescription": "TokenMaxxer tracks AI subscription limits, API key balances, reset windows, and estimated spend locally on Windows, macOS, and Linux.",
     "icon": [
       "icons/icon.png",
+      "icons/icon.icns",
       "icons/icon.ico"
     ]
   }
