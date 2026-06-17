@@ -1,13 +1,12 @@
 // Types mirrored from the Rust `provider` module. The Rust structs all use
 // `#[serde(rename_all = "camelCase")]`, so the wire format over Tauri IPC is
-// camelCase — these interfaces MUST match that (not the Rust snake_case names).
+// camelCase - these interfaces MUST match that (not the Rust snake_case names).
 
 export type ProviderKind =
   | "codex"
   | "antigravity"
   | "deepseek"
-  | "z_ai"
-  | "github_copilot";
+  | "z_ai";
 
 export interface AccountConfig {
   id: string;
@@ -29,7 +28,7 @@ export type ModelVendor = "gemini" | "claude" | "gpt" | "other";
 /** A single usage window (e.g. Codex's 5h window, or its weekly window). */
 export interface UsageWindow {
   label: string;
-  /** 0..100 — fraction of the window *consumed*. Drives the bar. */
+  /** 0..100 - fraction of the window *consumed*. Drives the bar. */
   usedPercent: number;
   /** Length of the window in seconds, if known (e.g. 18000 for 5h). */
   limitWindowSeconds: number | null;
@@ -97,3 +96,10 @@ export const EMPTY_COST: CostEstimate = {
   tokenBudget: 0,
   ratePerMtuGbp: 0,
 };
+
+export interface UsageEvent {
+  timestamp: number;
+  accountId: string;
+  tokensUsed: number;
+  costGbp: number;
+}

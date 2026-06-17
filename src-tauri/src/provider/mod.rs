@@ -1,13 +1,12 @@
 //! Provider abstraction.
 //!
-//! Every service we track (Codex, Antigravity, DeepSeek, Z.ai, GitHub Copilot)
+//! Every service we track (Codex, Antigravity, DeepSeek, Z.ai)
 //! implements [`Provider`]. The UI only ever sees the normalized [`Snapshot`].
 
-pub mod codex;
 pub mod antigravity_remote;
+pub mod codex;
 pub mod deepseek;
 pub mod z_ai;
-pub mod github_copilot;
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -22,7 +21,6 @@ pub enum ProviderKind {
     Antigravity,
     Deepseek,
     ZAi,
-    GithubCopilot,
 }
 
 impl ProviderKind {
@@ -32,7 +30,6 @@ impl ProviderKind {
             ProviderKind::Antigravity => "antigravity",
             ProviderKind::Deepseek => "deepseek",
             ProviderKind::ZAi => "z_ai",
-            ProviderKind::GithubCopilot => "github_copilot",
         }
     }
 }
@@ -52,6 +49,33 @@ pub struct UsageWindow {
     /// Per-model breakdown.
     #[serde(default)]
     pub models: Vec<ModelQuota>,
+}
+
+/// A shorter reset window is still gated by the longer weekly subscription cap.
+/// If the weekly cap is more constrained, surface that effective availability on
+/// the 5-hour window too so the UI does not show usable short-window capacity
+/// that the account cannot actually spend.
+pub fn apply_weekly_cap_to_five_hour_window(windows: &mut [UsageWindow]) {
+    let weekly_used = windows
+        .iter()
+        .find(|w| {
+            w.limit_window_seconds
+                .is_some_and(|s| s >= 6 * 24 * 60 * 60)
+                || w.label.to_ascii_lowercase().contains("weekly")
+        })
+        .map(|w| w.used_percent);
+
+    let Some(weekly_used) = weekly_used else {
+        return;
+    };
+
+    for window in windows.iter_mut().filter(|w| {
+        w.limit_window_seconds.is_some_and(|s| s <= 5 * 60 * 60)
+            || w.label.to_ascii_lowercase().contains("5-hour")
+            || w.label.to_ascii_lowercase().contains("5h")
+    }) {
+        window.used_percent = window.used_percent.max(weekly_used).clamp(0.0, 100.0);
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -150,6 +174,28 @@ pub struct Snapshot {
 /// Opaque credential blob.
 pub type Credentials = serde_json::Value;
 
+/// Result of a provider fetch, including any credential updates that need
+/// to be persisted back to the vault (e.g. rotated refresh tokens).
+#[derive(Debug)]
+pub struct FetchResult {
+    pub snapshot: Snapshot,
+    /// If set, the scheduler must persist these updated credentials back to
+    /// the vault under the account's `auth_ref`. This is used by providers
+    /// whose tokens rotate (Codex) or whose access tokens are cached
+    /// (Antigravity).
+    pub updated_credentials: Option<Credentials>,
+}
+
+impl FetchResult {
+    /// Convenience constructor for providers that don't update credentials.
+    pub fn snapshot_only(snapshot: Snapshot) -> Self {
+        Self {
+            snapshot,
+            updated_credentials: None,
+        }
+    }
+}
+
 /// What a provider needs to do: validate + fetch, given stored credentials.
 #[async_trait]
 pub trait Provider: Send + Sync {
@@ -158,7 +204,7 @@ pub trait Provider: Send + Sync {
         &self,
         account_id: &str,
         creds: &Credentials,
-    ) -> Result<Snapshot, ProviderError>;
+    ) -> Result<FetchResult, ProviderError>;
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -202,7 +248,8 @@ pub mod registry {
             ProviderDescriptor {
                 kind: ProviderKind::Codex,
                 display_name: "Codex".into(),
-                credential_description: "Paste the contents of your ~/.codex/auth.json file.".into(),
+                credential_description: "Paste the contents of your ~/.codex/auth.json file."
+                    .into(),
             },
             ProviderDescriptor {
                 kind: ProviderKind::Deepseek,
@@ -213,11 +260,6 @@ pub mod registry {
                 kind: ProviderKind::ZAi,
                 display_name: "Z.ai".into(),
                 credential_description: "Paste your Z.ai API key.".into(),
-            },
-            ProviderDescriptor {
-                kind: ProviderKind::GithubCopilot,
-                display_name: "GitHub Copilot".into(),
-                credential_description: "Paste a GitHub Personal Access Token (PAT). Organization name is optional.".into(),
             },
         ]
     }
@@ -231,7 +273,6 @@ pub mod registry {
             }
             ProviderKind::Deepseek => Box::new(deepseek::DeepSeekProvider::new()),
             ProviderKind::ZAi => Box::new(z_ai::ZAiProvider::new()),
-            ProviderKind::GithubCopilot => Box::new(github_copilot::GitHubCopilotProvider::new()),
         }
     }
 
@@ -242,8 +283,109 @@ pub mod registry {
             "antigravity" => Some(ProviderKind::Antigravity),
             "deepseek" => Some(ProviderKind::Deepseek),
             "z_ai" => Some(ProviderKind::ZAi),
-            "github_copilot" => Some(ProviderKind::GithubCopilot),
             _ => None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn dummy_snapshot(account_id: &str) -> Snapshot {
+        Snapshot {
+            account_id: account_id.to_string(),
+            timestamp: 0,
+            plan_name: None,
+            account_detail: None,
+            provider_kind: None,
+            windows: vec![],
+            cost: CostEstimate::default(),
+            balance_gbp: None,
+            is_stale: false,
+            error: None,
+        }
+    }
+
+    #[test]
+    fn fetch_result_snapshot_only_has_no_updated_credentials() {
+        let fr = FetchResult::snapshot_only(dummy_snapshot("acct-1"));
+        assert!(fr.updated_credentials.is_none());
+        assert_eq!(fr.snapshot.account_id, "acct-1");
+    }
+
+    #[test]
+    fn fetch_result_with_updated_credentials_carries_both() {
+        let updated = serde_json::json!({
+            "access_token": "new-at",
+            "refresh_token": "new-rt",
+        });
+        let fr = FetchResult {
+            snapshot: dummy_snapshot("acct-2"),
+            updated_credentials: Some(updated.clone()),
+        };
+        assert_eq!(fr.snapshot.account_id, "acct-2");
+        assert_eq!(fr.updated_credentials.unwrap(), updated);
+    }
+
+    #[test]
+    fn provider_kind_round_trips_through_registry() {
+        for kind_str in &["codex", "antigravity", "deepseek", "z_ai"] {
+            let kind = registry::parse_kind(kind_str).expect(kind_str);
+            assert_eq!(kind.as_str(), *kind_str);
+        }
+        assert!(registry::parse_kind("unknown").is_none());
+    }
+
+    #[test]
+    fn weekly_cap_constrains_five_hour_window() {
+        let now = chrono::Utc::now();
+        let mut windows = vec![
+            UsageWindow {
+                label: "5-hour window".into(),
+                used_percent: 0.0,
+                limit_window_seconds: Some(5 * 60 * 60),
+                resets_at: now,
+                models: vec![],
+            },
+            UsageWindow {
+                label: "Weekly window".into(),
+                used_percent: 100.0,
+                limit_window_seconds: Some(7 * 24 * 60 * 60),
+                resets_at: now,
+                models: vec![],
+            },
+        ];
+
+        apply_weekly_cap_to_five_hour_window(&mut windows);
+
+        assert_eq!(windows[0].used_percent, 100.0);
+        assert_eq!(windows[1].used_percent, 100.0);
+    }
+
+    #[test]
+    fn weekly_cap_does_not_inflate_weekly_window() {
+        let now = chrono::Utc::now();
+        let mut windows = vec![
+            UsageWindow {
+                label: "5-hour window".into(),
+                used_percent: 80.0,
+                limit_window_seconds: Some(5 * 60 * 60),
+                resets_at: now,
+                models: vec![],
+            },
+            UsageWindow {
+                label: "Weekly window".into(),
+                used_percent: 25.0,
+                limit_window_seconds: Some(7 * 24 * 60 * 60),
+                resets_at: now,
+                models: vec![],
+            },
+        ];
+
+        apply_weekly_cap_to_five_hour_window(&mut windows);
+
+        assert_eq!(windows[0].used_percent, 80.0);
+        assert_eq!(windows[1].used_percent, 25.0);
     }
 }

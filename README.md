@@ -16,7 +16,6 @@ live in this repository.
 | Gemini / Antigravity OAuth | Per-model quota with reset details | Google's Cloud Code backend with a Google OAuth refresh token |
 | DeepSeek | Account balance and estimated usage | DeepSeek API credentials |
 | Z.ai | Quota-style usage where available | Z.ai API credentials |
-| GitHub Copilot | Individual or organization usage where API access allows it | GitHub token |
 
 ## Prerequisites
 
@@ -117,7 +116,41 @@ Windows continues to store credentials in the DPAPI-encrypted `vault.enc` file.
 Early non-Windows builds that wrote plaintext `vault.enc` are migrated into the
 native keyring on first load and the plaintext file is removed.
 
-For Gemini / Antigravity OAuth, provide a credential object like:
+For Gemini / Antigravity OAuth, provide a credential JSON object. There are two
+ways to obtain it:
+
+### Option A: Decode from the Antigravity IDE (recommended)
+
+Run the decoder script:
+
+```bash
+node decode-antigravity-token.cjs
+```
+
+This produces `antigravity-token.tmp.json` with:
+
+```json
+{
+  "refresh_token": "1//...",
+  "access_token": "ya29...",
+  "expires_at": 1781640643
+}
+```
+
+The decoded token does **not** include `client_secret` because the IDE does not
+store it locally. You must supply the client secret separately:
+
+- **Option 1**: Add `"client_secret": "YOUR_SECRET"` to the JSON before pasting
+  it into the wizard.
+- **Option 2**: Set the `TOKENMAXXER_GOOGLE_CLIENT_SECRET` environment variable
+  before launching TokenMaxxer (e.g. in a `.env` file or shell profile).
+
+The `client_secret` is **required** for token refresh — without it, TokenMaxxer
+cannot call Google's OAuth endpoint to obtain fresh access tokens.
+
+### Option B: Manual entry
+
+Provide a JSON object with all required fields:
 
 ```json
 {
@@ -127,8 +160,7 @@ For Gemini / Antigravity OAuth, provide a credential object like:
 }
 ```
 
-Alternatively, set `TOKENMAXXER_GOOGLE_CLIENT_SECRET` in the app environment
-and omit `client_secret` from the credential JSON.
+`email` is optional and used only for display purposes in the account card.
 
 ## Repository Hygiene
 

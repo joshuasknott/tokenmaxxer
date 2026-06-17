@@ -11,19 +11,17 @@ import {
   TbRefresh,
   TbShieldLock,
 } from "react-icons/tb";
-import logoUrl from "./assets/tokenmaxxer-logo.png";
 import {
+  AntigravityLogo,
   CodexLogo,
   DeepSeekLogo,
-  GeminiLogo,
-  GithubCopilotLogo,
   ZaiLogo,
 } from "./components/ProviderLogo";
 import type { AccountConfig, ProviderKind, Snapshot } from "./types";
 import { AccountCard } from "./components/AccountCard";
 import { SummaryTiles } from "./components/SummaryTiles";
 import { UsageChart } from "./components/UsageChart";
-import { Logo } from "./components/Logo";
+import { Logo, LogoMark } from "./components/Logo";
 
 const SOURCE_URL = "https://github.com/joshuasknott/tokenmaxxer";
 const RELEASES_URL = `${SOURCE_URL}/releases`;
@@ -66,8 +64,7 @@ const downloadOptions: DownloadOption[] = [
 
 const compatibleProviders = [
   { name: "Codex", Icon: CodexLogo },
-  { name: "Google Gemini & Antigravity", Icon: GeminiLogo },
-  { name: "GitHub Copilot Student", Icon: GithubCopilotLogo },
+  { name: "Google Antigravity", Icon: AntigravityLogo },
   { name: "Z.ai", Icon: ZaiLogo },
   { name: "DeepSeek API", Icon: DeepSeekLogo },
 ];
@@ -117,7 +114,7 @@ export function MarketingPage() {
             <DownloadButton className="marketing-primary" />
             <a className="marketing-secondary" href={SOURCE_URL} rel="noreferrer" target="_blank">
               <FaGithub aria-hidden="true" />
-              View source
+              GitHub
             </a>
           </div>
 
@@ -145,7 +142,7 @@ function Header() {
     <header className="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-[#0e1114]/88 backdrop-blur-xl">
       <div className="mx-auto flex h-20 max-w-[1480px] items-center justify-between px-5 sm:px-8 lg:px-12">
         <a className="flex min-w-0 items-center gap-3" href="#">
-          <img alt="" aria-hidden="true" className="h-11 w-11 shrink-0 object-contain" src={logoUrl} />
+          <LogoMark className="h-12 w-12 shrink-0 text-white" />
           <span className="hidden truncate text-base font-black uppercase tracking-normal text-white min-[480px]:inline sm:text-2xl">
             TokenMaxxer
           </span>
@@ -182,7 +179,6 @@ function DownloadButton({ className }: { className: string }) {
 const initialAccounts: AccountConfig[] = [
   { id: "1", label: "personal@openai", provider: "codex", authRef: "vault_codex" },
   { id: "2", label: "work@google-oauth", provider: "antigravity", authRef: "vault_antigravity" },
-  { id: "3", label: "student-copilot", provider: "github_copilot", authRef: "vault_copilot" },
   { id: "4", label: "deepseek-payg", provider: "deepseek", authRef: "vault_deepseek" },
 ];
 
@@ -219,13 +215,23 @@ const initialSnapshots: Record<string, Snapshot> = {
     providerKind: "antigravity",
     windows: [
       {
-        label: "Weekly quota",
-        usedPercent: 37,
-        limitWindowSeconds: 604800,
-        resetsAt: new Date(Date.now() + 259200000).toISOString(),
+        label: "5-hour window",
+        usedPercent: 45,
+        limitWindowSeconds: 18000,
+        resetsAt: new Date(Date.now() + 7200000).toISOString(),
         models: [
           { label: "Gemini 1.5 Pro", modelId: "gemini-1.5-pro", vendor: "gemini", usedPercent: 45, resetTime: null },
           { label: "Gemini 1.5 Flash", modelId: "gemini-1.5-flash", vendor: "gemini", usedPercent: 25, resetTime: null },
+        ],
+      },
+      {
+        label: "Weekly window",
+        usedPercent: 60,
+        limitWindowSeconds: 604800,
+        resetsAt: new Date(Date.now() + 259200000).toISOString(),
+        models: [
+          { label: "Claude 3.5 Sonnet", modelId: "claude-3-5-sonnet", vendor: "claude", usedPercent: 60, resetTime: null },
+          { label: "GPT-4o", modelId: "gpt-4o", vendor: "gpt", usedPercent: 30, resetTime: null },
         ],
       }
     ],
@@ -234,22 +240,6 @@ const initialSnapshots: Record<string, Snapshot> = {
       tokensUsed: 206000,
       tokenBudget: 500000,
       ratePerMtuGbp: 20,
-    },
-    isStale: false,
-    error: null,
-  },
-  "3": {
-    accountId: "3",
-    timestamp: Date.now() - 450000,
-    planName: "GitHub Copilot Student",
-    accountDetail: "student-copilot",
-    providerKind: "github_copilot",
-    windows: [],
-    cost: {
-      estimatedGbp: 0,
-      tokensUsed: 0,
-      tokenBudget: 0,
-      ratePerMtuGbp: 0,
     },
     isStale: false,
     error: null,
@@ -316,7 +306,11 @@ function MockWizard({
       <div className="card w-full max-w-md p-5 bg-[#12161a] border border-zinc-800 rounded-xl shadow-2xl space-y-4 text-zinc-100">
         <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
           <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-300">Add Mock Account</h3>
-          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300">✕</button>
+          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 p-0.5 flex items-center justify-center transition-colors">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
         
         <div className="space-y-3 text-xs">
@@ -329,7 +323,6 @@ function MockWizard({
             >
               <option value="codex">Codex</option>
               <option value="antigravity">Antigravity</option>
-              <option value="github_copilot">GitHub Copilot</option>
               <option value="deepseek">DeepSeek</option>
               <option value="z_ai">Z.ai</option>
             </select>
@@ -374,8 +367,9 @@ function HeroPreview() {
   const [showWizard, setShowWizard] = useState(false);
   
   const historyEvents = useMemo(() => {
-    return generateMockEvents();
-  }, []);
+    const allowedAccountIds = accounts.map((a) => a.id);
+    return generateMockEvents().filter((e) => allowedAccountIds.includes(e.accountId));
+  }, [accounts]);
 
   const handleRetry = (id: string) => {
     setSnapshots((prev) => ({
@@ -438,7 +432,7 @@ function HeroPreview() {
               <Logo size="md" />
               {accounts.length > 0 && (
                 <span className="hidden text-xs sm:inline text-zinc-400">
-                  · {accounts.length} {accounts.length === 1 ? "account" : "accounts"}
+                  | {accounts.length} {accounts.length === 1 ? "account" : "accounts"}
                 </span>
               )}
             </div>
@@ -479,7 +473,7 @@ function HeroPreview() {
 
           {/* Summary Tiles Row */}
           {accounts.length > 0 && (
-            <SummaryTiles snapshots={snapshots} accountCount={accounts.length} />
+            <SummaryTiles snapshots={snapshots} accountCount={accounts.length} accounts={accounts} />
           )}
 
           {/* Tracked Accounts Grid */}
@@ -542,9 +536,9 @@ function HeroPreview() {
                   ],
                   cost: {
                     estimatedGbp: 0.1,
-                    tokensUsed: 5000,
-                    tokenBudget: 50000,
-                    ratePerMtuGbp: 20,
+                    tokensUsed: 0,
+                    tokenBudget: 0,
+                    ratePerMtuGbp: 0,
                   },
                   isStale: false,
                   error: null,
@@ -585,7 +579,7 @@ function ProviderBand() {
           {compatibleProviders.map((prov) => (
             <span key={prov.name} title={prov.name}>
               <prov.Icon
-                className="h-8 w-8 text-zinc-400"
+                className="h-8 w-8"
                 aria-hidden="true"
               />
             </span>
@@ -696,20 +690,26 @@ function SecuritySection() {
           </p>
           <div className="mt-8 grid gap-4 text-sm text-zinc-300">
             <div className="flex items-center gap-3">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-400">
-                ✓
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-400 shrink-0">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
               </span>
               No cloud accounts or hosting required.
             </div>
             <div className="flex items-center gap-3">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-400">
-                ✓
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-400 shrink-0">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
               </span>
               API credentials never leave your local workspace.
             </div>
             <div className="flex items-center gap-3">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-400">
-                ✓
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-400 shrink-0">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
               </span>
               Full source code is open and verifiable.
             </div>

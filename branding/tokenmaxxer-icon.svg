@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">TokenMaxxer icon</title>
+  <desc id="desc">A monochrome stacked-token app icon with an upward max arrow on a solid dark rounded-square background.</desc>
+  <defs>
+    <linearGradient id="tileEdge" x1="130" y1="96" x2="874" y2="928" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2a2d34"/>
+      <stop offset="0.55" stop-color="#0b0d11"/>
+      <stop offset="1" stop-color="#050608"/>
+    </linearGradient>
+    <linearGradient id="metalTop" x1="268" y1="310" x2="732" y2="700" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.48" stop-color="#f1f2f4"/>
+      <stop offset="1" stop-color="#b9bec6"/>
+    </linearGradient>
+    <linearGradient id="metalSide" x1="308" y1="584" x2="746" y2="832" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fafafa"/>
+      <stop offset="0.5" stop-color="#c7ccd3"/>
+      <stop offset="1" stop-color="#656c75"/>
+    </linearGradient>
+    <linearGradient id="metalDark" x1="640" y1="402" x2="748" y2="690" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.42" stop-color="#c8ccd3"/>
+      <stop offset="1" stop-color="#343943"/>
+    </linearGradient>
+    <filter id="softShadow" x="-18%" y="-18%" width="136%" height="146%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="26" stdDeviation="28" flood-color="#000000" flood-opacity="0.62"/>
+      <feDropShadow dx="0" dy="4" stdDeviation="7" flood-color="#000000" flood-opacity="0.34"/>
+    </filter>
+    <clipPath id="tileClip">
+      <rect x="56" y="56" width="912" height="912" rx="190"/>
+    </clipPath>
+  </defs>
+
+  <rect width="1024" height="1024" fill="#000000"/>
+  <g clip-path="url(#tileClip)">
+    <rect x="56" y="56" width="912" height="912" rx="190" fill="#090b0f"/>
+    <path d="M56 246c0-105 85-190 190-190h556c105 0 190 85 190 190v556c0 105-85 190-190 190H246c-105 0-190-85-190-190V246Z" fill="none" stroke="url(#tileEdge)" stroke-width="8"/>
+
+    <g filter="url(#softShadow)">
+      <path d="m256 662 256-148 256 148-256 148-256-148Z" fill="#050608"/>
+      <path d="m256 662 256 148 256-148v56L512 866 256 718v-56Z" fill="#0b0d11"/>
+      <path d="m289 656 223-129 223 129-223 129-223-129Z" fill="url(#metalSide)"/>
+      <path d="m289 656 223 129v53L289 710v-54Z" fill="#e9ebee"/>
+      <path d="m512 785 223-129v54L512 838v-53Z" fill="#4c535d"/>
+
+      <path d="m254 566 258-149 258 149-258 149-258-149Z" fill="#050608"/>
+      <path d="m254 566 258 149 258-149v63L512 778 254 629v-63Z" fill="#0b0d11"/>
+      <path d="m286 560 226-131 226 131-226 131-226-131Z" fill="url(#metalSide)"/>
+      <path d="m286 560 226 131v61L286 622v-62Z" fill="#ffffff"/>
+      <path d="m512 691 226-131v62L512 752v-61Z" fill="#5a6069"/>
+
+      <path d="m256 466 256-148 256 148-256 148-256-148Z" fill="#050608"/>
+      <path d="m256 466 256 148 256-148v72L512 686 256 538v-72Z" fill="#0b0d11"/>
+
+      <path d="M302 458 512 337l64 37-146 85 85 49 145-84 62 36-210 121-210-123Z" fill="url(#metalTop)"/>
+      <path d="M302 458 512 581v71L302 531v-73Z" fill="#f7f8fa"/>
+      <path d="m512 581 210-121v72L512 652v-71Z" fill="#454b55"/>
+
+      <path d="m489 503 264-258-54 202-81-47-64 174-65-71Z" fill="#f9fafb"/>
+      <path d="m554 574 64-174 81 47-145 127Z" fill="url(#metalDark)"/>
+      <path d="m489 503 65 71-80 46-64-37 79-80Z" fill="#dfe3e8"/>
+      <path d="m753 245-54 202-31-18 46-138 39-46Z" fill="#c9ced6"/>
+    </g>
+  </g>
+</svg>

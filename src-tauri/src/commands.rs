@@ -5,7 +5,7 @@
 //! one row to config.json and one entry to the encrypted vault. No code change
 //! is needed for any account of an existing provider type.
 
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 use uuid::Uuid;
 
 use crate::config::{AccountConfig, AppConfig};
@@ -33,23 +33,31 @@ pub async fn add_account(
     provider: String,
     credentials: Credentials,
 ) -> Result<AccountConfig, String> {
-    let kind = registry::parse_kind(&provider)
-        .ok_or_else(|| format!("unknown provider: {provider}"))?;
-
-    // Validate credentials before persisting anything.
-    let adapter = registry::make(kind);
-    adapter
-        .validate(&credentials)
-        .await
-        .map_err(|e| e.to_string())?;
+    let kind =
+        registry::parse_kind(&provider).ok_or_else(|| format!("unknown provider: {provider}"))?;
 
     let id = Uuid::new_v4().to_string();
     let auth_ref = format!("{provider}-{id}");
 
+    // Validate credentials by fetching the first snapshot before persisting
+    // anything. This matters for providers like Codex, where refresh tokens can
+    // rotate on use and must be saved immediately.
+    let adapter = registry::make(kind);
+    let fetch_result = adapter
+        .fetch(&id, &credentials)
+        .await
+        .map_err(|e| e.to_string())?;
+    let credentials_to_store = fetch_result
+        .updated_credentials
+        .clone()
+        .unwrap_or(credentials);
+
     // Persist credentials in the encrypted vault (local-scrape providers store
     // an empty object — harmless and keeps the shape uniform).
     let mut vault = Vault::load().map_err(|e| e.to_string())?;
-    vault.put(auth_ref.clone(), credentials).map_err(|e| e.to_string())?;
+    vault
+        .put(auth_ref.clone(), credentials_to_store)
+        .map_err(|e| e.to_string())?;
 
     // Add the account row to config.json.
     let mut config = AppState::config(&app);
@@ -62,9 +70,14 @@ pub async fn add_account(
     config.add_account(account.clone());
     config.save().map_err(|e| e.to_string())?;
 
-    // Kick off an immediate fetch so the card populates right away.
-    let snap = scheduler::refresh_one(&app, &id).await;
-    let _ = app.emit("usage:update", &snap);
+    if let Some(cache) = app.try_state::<scheduler::SnapshotCache>() {
+        cache
+            .inner()
+            .lock()
+            .await
+            .insert(id.clone(), fetch_result.snapshot.clone());
+    }
+    let _ = app.emit("usage:update", &fetch_result.snapshot);
 
     Ok(account)
 }

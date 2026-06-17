@@ -1,6 +1,6 @@
 //! Best-effort usage-to-cost estimation in GBP (£).
 //!
-//! To produce a useful "£ spent" figure, we assume a per-window token budget 
+//! To produce a useful "£ spent" figure, we assume a per-window token budget
 //! (typically 1M tokens) and apply blended per-vendor token rates in GBP.
 //!
 //! Blended USD per 1M tokens multiplied by USD-to-GBP exchange rate (0.79).
@@ -30,7 +30,7 @@ pub fn for_codex(windows: &[UsageWindow]) -> CostEstimate {
         .min_by_key(|w| (w.used_percent * 1000.0) as i64)
         .or_else(|| windows.iter().max_by_key(|w| w.used_percent as i64))
         .or_else(|| windows.first());
-    
+
     let used_fraction = headline
         .map(|w| w.used_percent.clamp(0.0, 100.0) / 100.0)
         .unwrap_or(0.0);
@@ -55,7 +55,9 @@ pub fn for_antigravity(windows: &[UsageWindow]) -> CostEstimate {
     let mut contributing_models = 0;
     for w in windows {
         for m in &w.models {
-            let Some(used_pct) = m.used_percent else { continue };
+            let Some(used_pct) = m.used_percent else {
+                continue;
+            };
             let frac = (used_pct.clamp(0.0, 100.0) / 100.0).max(0.0);
             let rate = m.vendor.rate_per_mtu_gbp();
             let tokens = frac * TOKEN_BUDGET_PER_WINDOW;
@@ -108,6 +110,10 @@ pub fn aggregate(snapshots: &[&Snapshot]) -> CostEstimate {
         estimated_gbp: gbp,
         tokens_used: tokens,
         token_budget: budget,
-        rate_per_mtu_gbp: if n > 0 { gbp * 1_000_000.0 / tokens.max(1.0) } else { 0.0 },
+        rate_per_mtu_gbp: if n > 0 {
+            gbp * 1_000_000.0 / tokens.max(1.0)
+        } else {
+            0.0
+        },
     }
 }

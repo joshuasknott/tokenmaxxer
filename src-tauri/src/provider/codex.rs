@@ -15,7 +15,10 @@
 //! secondary_window is the weekly window. Each carries `used_percent`,
 //! `limit_window_seconds`, and `reset_at` (unix seconds).
 
-use super::{Credentials, ModelQuota, Provider, ProviderError, Snapshot, UsageWindow};
+use super::{
+    apply_weekly_cap_to_five_hour_window, Credentials, FetchResult, ModelQuota, Provider,
+    ProviderError, Snapshot, UsageWindow,
+};
 use async_trait::async_trait;
 use chrono::{DateTime, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
@@ -52,21 +55,17 @@ impl CodexProvider {
     fn parse_creds(creds: &Credentials) -> Result<CodexTokens, ProviderError> {
         // Try `tokens` first (full auth.json), then fall back to the value
         // being the tokens object directly.
-        let tokens_value = creds
-            .get("tokens")
-            .unwrap_or(creds);
-        serde_json::from_value::<CodexTokens>(tokens_value.clone())
-            .map_err(|e| ProviderError::InvalidCredentials(format!(
+        let tokens_value = creds.get("tokens").unwrap_or(creds);
+        serde_json::from_value::<CodexTokens>(tokens_value.clone()).map_err(|e| {
+            ProviderError::InvalidCredentials(format!(
                 "expected a Codex tokens object with access_token + refresh_token: {e}"
-            )))
+            ))
+        })
     }
 
     /// Refresh the access token using the refresh token. Returns the new token
     /// set (refresh tokens are single-use and rotate on each refresh).
-    async fn refresh(
-        &self,
-        tokens: &CodexTokens,
-    ) -> Result<CodexTokens, ProviderError> {
+    async fn refresh(&self, tokens: &CodexTokens) -> Result<CodexTokens, ProviderError> {
         let resp = self
             .client
             .post(TOKEN_REFRESH_URL)
@@ -101,7 +100,9 @@ impl CodexProvider {
         Ok(CodexTokens {
             access_token: parsed.access_token,
             // Refresh tokens rotate; fall back to the old one if omitted.
-            refresh_token: parsed.refresh_token.unwrap_or_else(|| tokens.refresh_token.clone()),
+            refresh_token: parsed
+                .refresh_token
+                .unwrap_or_else(|| tokens.refresh_token.clone()),
             account_id: tokens.account_id.clone(),
         })
     }
@@ -112,15 +113,12 @@ impl CodexProvider {
         access_token: &str,
         account_id: &str,
     ) -> Result<Snapshot, ProviderError> {
-        let req = self
-            .client
-            .get(WHAM_USAGE_URL)
-            .bearer_auth(access_token);
+        let req = self.client.get(WHAM_USAGE_URL).bearer_auth(access_token);
         let resp = req.send().await?;
 
         if resp.status() == reqwest::StatusCode::UNAUTHORIZED {
             return Err(ProviderError::InvalidCredentials(
-                "unauthorized — token may be revoked".into(),
+                "unauthorized - token may be revoked".into(),
             ));
         }
         if !resp.status().is_success() {
@@ -231,13 +229,30 @@ impl Provider for CodexProvider {
         &self,
         account_id: &str,
         creds: &Credentials,
-    ) -> Result<Snapshot, ProviderError> {
-        let mut tokens = Self::parse_creds(creds)?;
-        // Refresh up front so the access token is fresh.
-        if let Ok(refreshed) = self.refresh(&tokens).await {
-            tokens = refreshed;
-        }
-        self.fetch_usage(&tokens.access_token, account_id).await
+    ) -> Result<FetchResult, ProviderError> {
+        let tokens = Self::parse_creds(creds)?;
+        // Refresh up front so the access token is fresh. The refresh token
+        // rotates on each use (single-use), so we MUST persist the new set.
+        let (refreshed_tokens, did_refresh) = match self.refresh(&tokens).await {
+            Ok(r) => (r, true),
+            Err(_) => (tokens.clone(), false),
+        };
+        let snapshot = self
+            .fetch_usage(&refreshed_tokens.access_token, account_id)
+            .await?;
+
+        // Persist the rotated tokens back to the vault. The refresh token is
+        // single-use: if we don't persist the new one, the next poll will fail.
+        let updated_credentials = if did_refresh {
+            Some(serde_json::to_value(&refreshed_tokens).unwrap_or_default())
+        } else {
+            None
+        };
+
+        Ok(FetchResult {
+            snapshot,
+            updated_credentials,
+        })
     }
 }
 
@@ -291,6 +306,7 @@ fn payload_to_snapshot(
             windows.push(window_from("Weekly window".into(), w, now));
         }
     }
+    apply_weekly_cap_to_five_hour_window(&mut windows);
 
     // Email: prefer the wham response, fall back to the JWT access_token claim.
     let email = payload
@@ -321,11 +337,7 @@ fn payload_to_snapshot(
     }
 }
 
-fn window_from(
-    label: String,
-    w: &RateLimitWindowSnapshot,
-    now: DateTime<Utc>,
-) -> UsageWindow {
+fn window_from(label: String, w: &RateLimitWindowSnapshot, now: DateTime<Utc>) -> UsageWindow {
     // Prefer the absolute reset_at (unix seconds) when present; otherwise
     // derive from reset_after_seconds relative to now.
     let resets_at = w
@@ -350,5 +362,98 @@ fn capitalize(s: &str) -> String {
     match c.next() {
         Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
         None => String::new(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_creds_full_auth_json() {
+        let creds = serde_json::json!({
+            "tokens": {
+                "access_token": "at-123",
+                "refresh_token": "rt-456"
+            }
+        });
+        let tokens = CodexProvider::parse_creds(&creds).unwrap();
+        assert_eq!(tokens.access_token, "at-123");
+        assert_eq!(tokens.refresh_token, "rt-456");
+    }
+
+    #[test]
+    fn parse_creds_direct_tokens_object() {
+        let creds = serde_json::json!({
+            "access_token": "at-direct",
+            "refresh_token": "rt-direct",
+            "account_id": "acct-1"
+        });
+        let tokens = CodexProvider::parse_creds(&creds).unwrap();
+        assert_eq!(tokens.access_token, "at-direct");
+        assert_eq!(tokens.refresh_token, "rt-direct");
+        assert_eq!(tokens.account_id, Some("acct-1".into()));
+    }
+
+    #[test]
+    fn parse_creds_rejects_missing_fields() {
+        let creds = serde_json::json!({ "access_token": "only-at" });
+        assert!(CodexProvider::parse_creds(&creds).is_err());
+    }
+
+    #[test]
+    fn codex_tokens_round_trip_serialization() {
+        let tokens = CodexTokens {
+            access_token: "at".into(),
+            refresh_token: "rt".into(),
+            account_id: Some("acct".into()),
+        };
+        let serialized = serde_json::to_value(&tokens).unwrap();
+        let deserialized: CodexTokens = serde_json::from_value(serialized).unwrap();
+        assert_eq!(deserialized.access_token, "at");
+        assert_eq!(deserialized.refresh_token, "rt");
+        assert_eq!(deserialized.account_id, Some("acct".into()));
+    }
+
+    #[test]
+    fn email_from_jwt_extracts_claim() {
+        // Build a fake JWT with an email claim in the payload.
+        // Header: {"alg":"none"}  Payload: {"email":"test@example.com"}
+        let header = base64url_encode(br#"{"alg":"none"}"#);
+        let payload = base64url_encode(br#"{"email":"test@example.com"}"#);
+        let fake_jwt = format!("{header}.{payload}.sig");
+        assert_eq!(
+            email_from_jwt(&fake_jwt),
+            Some("test@example.com".to_string())
+        );
+    }
+
+    #[test]
+    fn email_from_jwt_returns_none_for_garbage() {
+        assert_eq!(email_from_jwt("not-a-jwt"), None);
+        assert_eq!(email_from_jwt("a.b"), None); // "b" won't decode to valid JSON
+    }
+
+    /// URL-safe base64 encode without padding (JWT style).
+    fn base64url_encode(input: &[u8]) -> String {
+        const ALPHABET: &[u8; 64] =
+            b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        let mut out = String::new();
+        for chunk in input.chunks(3) {
+            let b0 = chunk[0] as u32;
+            let b1 = if chunk.len() > 1 { chunk[1] as u32 } else { 0 };
+            let b2 = if chunk.len() > 2 { chunk[2] as u32 } else { 0 };
+            let n = (b0 << 16) | (b1 << 8) | b2;
+            out.push(ALPHABET[((n >> 18) & 0x3F) as usize] as char);
+            out.push(ALPHABET[((n >> 12) & 0x3F) as usize] as char);
+            if chunk.len() > 1 {
+                out.push(ALPHABET[((n >> 6) & 0x3F) as usize] as char);
+            }
+            if chunk.len() > 2 {
+                out.push(ALPHABET[(n & 0x3F) as usize] as char);
+            }
+        }
+        // JWT uses URL-safe base64 without padding.
+        out.replace('+', "-").replace('/', "_")
     }
 }

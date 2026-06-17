@@ -12,10 +12,13 @@ export interface ProviderStyle {
    */
   accentBar: string;
   /**
-   * Faint brand-tinted background for the icon chip (e.g. bg-teal-500/10).
+   * Neutral surface for real provider artwork. Logos should not be recolored
+   * for theme contrast.
    */
   chipBg: string;
 }
+
+const providerIconChip = "bg-white shadow-sm ring-1 ring-black/10";
 
 export function providerStyle(kind: ProviderKind): ProviderStyle {
   switch (kind) {
@@ -26,7 +29,7 @@ export function providerStyle(kind: ProviderKind): ProviderStyle {
         dot: "bg-zinc-800 dark:bg-zinc-200",
         tagline: "OpenAI Codex",
         accentBar: "bg-zinc-800 dark:bg-zinc-200",
-        chipBg: "bg-zinc-800/10 dark:bg-zinc-200/10",
+        chipBg: providerIconChip,
       };
     case "antigravity":
       return {
@@ -35,7 +38,7 @@ export function providerStyle(kind: ProviderKind): ProviderStyle {
         dot: "bg-zinc-800 dark:bg-zinc-200",
         tagline: "Google Antigravity",
         accentBar: "bg-teal-500",
-        chipBg: "bg-teal-500/10",
+        chipBg: providerIconChip,
       };
     case "deepseek":
       return {
@@ -44,7 +47,7 @@ export function providerStyle(kind: ProviderKind): ProviderStyle {
         dot: "bg-neutral-800 dark:bg-neutral-200",
         tagline: "DeepSeek API",
         accentBar: "bg-[#4D6BFE]",
-        chipBg: "bg-[#4D6BFE]/10",
+        chipBg: providerIconChip,
       };
     case "z_ai":
       return {
@@ -53,16 +56,7 @@ export function providerStyle(kind: ProviderKind): ProviderStyle {
         dot: "bg-zinc-800 dark:bg-zinc-200",
         tagline: "Z.ai Coding Plan",
         accentBar: "bg-indigo-500",
-        chipBg: "bg-indigo-500/10",
-      };
-    case "github_copilot":
-      return {
-        label: "GitHub Copilot",
-        gradient: "from-neutral-600 to-neutral-900 dark:from-neutral-400 dark:to-neutral-100",
-        dot: "bg-neutral-800 dark:bg-neutral-200",
-        tagline: "Copilot subscription",
-        accentBar: "bg-emerald-500",
-        chipBg: "bg-emerald-500/10",
+        chipBg: providerIconChip,
       };
   }
 }
@@ -70,12 +64,12 @@ export function providerStyle(kind: ProviderKind): ProviderStyle {
 export function vendorDot(vendor: ModelVendor): string {
   switch (vendor) {
     case "gemini":
-      return "bg-zinc-800 dark:bg-zinc-200";
+      return "bg-teal-500";
     case "claude":
-      return "bg-zinc-600 dark:bg-zinc-400";
+      return "bg-orange-500";
     case "gpt":
-      return "bg-zinc-400 dark:bg-zinc-600";
+      return "bg-emerald-500";
     case "other":
-      return "bg-zinc-300 dark:bg-zinc-700";
+      return "bg-zinc-400";
   }
 }

@@ -3,7 +3,7 @@
 use tauri::{AppHandle, Manager};
 
 use crate::config::AppConfig;
-use crate::scheduler::{SnapshotCache, SnapshotHistory, load_history};
+use crate::scheduler::{load_history, SnapshotCache, SnapshotHistory};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 

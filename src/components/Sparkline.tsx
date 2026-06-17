@@ -1,6 +1,6 @@
 /**
  * Minimal dependency-free sparkline. Plots availability (0..100) over time as a
- * filled SVG area + stroke. Green→amber→red gradient reflects health.
+ * filled SVG area + stroke. Green->amber->red gradient reflects health.
  */
 export function Sparkline({
   values,
@@ -18,7 +18,7 @@ export function Sparkline({
         className="flex items-center justify-center text-xs"
         style={{ color: "var(--text-faint)", height }}
       >
-        Collecting history… check back shortly.
+        Collecting history... check back shortly.
       </div>
     );
   }

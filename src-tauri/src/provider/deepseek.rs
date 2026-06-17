@@ -3,7 +3,7 @@
 //! Fetches the user balance from `https://api.deepseek.com/user/balance`
 //! and converts it to GBP.
 
-use super::{Credentials, Provider, ProviderError, Snapshot, CostEstimate};
+use super::{CostEstimate, Credentials, FetchResult, Provider, ProviderError, Snapshot};
 use async_trait::async_trait;
 use chrono::Utc;
 use serde::Deserialize;
@@ -45,7 +45,11 @@ impl DeepSeekProvider {
         ))
     }
 
-    async fn fetch_balance(&self, api_key: &str, account_id: &str) -> Result<Snapshot, ProviderError> {
+    async fn fetch_balance(
+        &self,
+        api_key: &str,
+        account_id: &str,
+    ) -> Result<Snapshot, ProviderError> {
         let resp = self
             .client
             .get(BALANCE_URL)
@@ -55,7 +59,7 @@ impl DeepSeekProvider {
 
         if resp.status() == reqwest::StatusCode::UNAUTHORIZED {
             return Err(ProviderError::InvalidCredentials(
-                "unauthorized — API key may be invalid".into(),
+                "unauthorized - API key may be invalid".into(),
             ));
         }
 
@@ -85,7 +89,9 @@ impl DeepSeekProvider {
             .map_err(|e| ProviderError::Protocol(format!("balance parse: {e}")))?;
 
         if !payload.is_available {
-            return Err(ProviderError::Other("DeepSeek API balance is unavailable".into()));
+            return Err(ProviderError::Other(
+                "DeepSeek API balance is unavailable".into(),
+            ));
         }
 
         let mut balance_gbp = 0.0;
@@ -125,8 +131,13 @@ impl Provider for DeepSeekProvider {
         Ok(())
     }
 
-    async fn fetch(&self, account_id: &str, creds: &Credentials) -> Result<Snapshot, ProviderError> {
+    async fn fetch(
+        &self,
+        account_id: &str,
+        creds: &Credentials,
+    ) -> Result<FetchResult, ProviderError> {
         let key = Self::parse_creds(creds)?;
-        self.fetch_balance(&key, account_id).await
+        let snapshot = self.fetch_balance(&key, account_id).await?;
+        Ok(FetchResult::snapshot_only(snapshot))
     }
 }

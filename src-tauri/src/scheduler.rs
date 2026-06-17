@@ -90,7 +90,30 @@ pub fn spawn(app: AppHandle) {
                 };
 
                 let provider = registry::make(kind);
-                let result = provider.fetch(&account.id, &creds).await;
+                let fetch_result = provider.fetch(&account.id, &creds).await;
+
+                // Persist any updated credentials (e.g. rotated refresh tokens)
+                // back to the vault BEFORE processing the snapshot. This is
+                // critical for Codex (single-use refresh tokens) and beneficial
+                // for Antigravity (cached access tokens). We re-load the vault
+                // for each write to avoid overwriting changes from other
+                // accounts that were persisted in the same poll cycle.
+                if let Ok(ref fr) = fetch_result {
+                    if let Some(ref updated_creds) = fr.updated_credentials {
+                        if let Ok(mut vault) = crate::vault::Vault::load() {
+                            if let Err(e) =
+                                vault.put(account.auth_ref.clone(), updated_creds.clone())
+                            {
+                                log::error!(
+                                    "failed to persist updated credentials for {}: {e}",
+                                    account.id
+                                );
+                            }
+                        }
+                    }
+                }
+
+                let result = fetch_result.map(|fr| fr.snapshot);
                 let snapshot = materialize_snapshot_async(&app, &account.id, result).await;
 
                 // Compare and record incremental usage to history.
@@ -110,10 +133,6 @@ pub fn spawn(app: AppHandle) {
                                     diff_tokens = diff * 1_000_000.0 / 0.16;
                                 }
                             }
-                        } else if snapshot.provider_kind.as_deref() == Some("github_copilot") {
-                            // Copilot organization usage or personal flat rate.
-                            // We do not have token count; we can log cost changes if seats changed,
-                            // but generally it's a flat rate monthly. No hourly diff.
                         } else {
                             // Quota-based: Codex, Antigravity, Z.ai
                             if !snapshot.windows.is_empty() && !prev.windows.is_empty() {
@@ -211,7 +230,23 @@ pub async fn refresh_one(app: &AppHandle, account_id: &str) -> Snapshot {
         .unwrap_or_else(|| serde_json::json!({}));
 
     let provider = registry::make(kind);
-    let result = provider.fetch(&account.id, &creds).await;
+    let fetch_result = provider.fetch(&account.id, &creds).await;
+
+    // Persist any updated credentials back to the vault.
+    if let Ok(ref fr) = fetch_result {
+        if let Some(ref updated_creds) = fr.updated_credentials {
+            if let Ok(mut vault) = crate::vault::Vault::load() {
+                if let Err(e) = vault.put(account.auth_ref.clone(), updated_creds.clone()) {
+                    log::error!(
+                        "failed to persist updated credentials for {}: {e}",
+                        account.id
+                    );
+                }
+            }
+        }
+    }
+
+    let result = fetch_result.map(|fr| fr.snapshot);
     let snap = materialize_snapshot_async(app, account_id, result).await;
     snap
 }

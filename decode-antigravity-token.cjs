@@ -236,8 +236,14 @@ async function main() {
     }
     console.log("\nWrote parsed token to", tmp, "(gitignored)");
     console.log(
-      "Paste the file's contents into the Add Account wizard." +
-        (access ? "" : " No client_secret present — set TOKENMAXXER_GOOGLE_CLIENT_SECRET if needed.")
+      "Paste the file's contents into the Add Account wizard.\n"
+    );
+    console.log(
+      "NOTE: The Antigravity IDE does not store client_secret.\n" +
+        "      You must supply it separately:\n" +
+        "        Option 1: Add \"client_secret\": \"YOUR_SECRET\" to the JSON.\n" +
+        "        Option 2: Set TOKENMAXXER_GOOGLE_CLIENT_SECRET env var\n" +
+        "                  before launching TokenMaxxer."
     );
   } finally {
     // Close the DB before the process exits so libuv has no open handles.

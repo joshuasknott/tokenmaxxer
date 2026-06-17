@@ -11,6 +11,39 @@ interface AddAccountWizardProps {
 
 type Step = "pick" | "credentials" | "working" | "done" | "error";
 
+/** Map raw backend error strings to user-friendly messages. */
+function friendlyError(raw: string): string {
+  const s = raw.replace(/^Error:\s*/i, "");
+
+  if (/missing client_secret/i.test(s) || /Missing client_secret/i.test(s)) {
+    return (
+      "Missing client_secret. The Antigravity IDE's token store does not include a client secret.\n\n" +
+      'Option 1: Add "client_secret": "YOUR_SECRET" to the JSON you pasted.\n' +
+      "Option 2: Set the TOKENMAXXER_GOOGLE_CLIENT_SECRET environment variable before launching TokenMaxxer."
+    );
+  }
+  if (/google token refresh failed/i.test(s)) {
+    return (
+      "Google rejected the token refresh request. This usually means the refresh token is expired or revoked.\n\n" +
+      "Try signing out and back in to Google in the Antigravity IDE, then re-run the decoder script."
+    );
+  }
+  if (/unauthorized.*refresh token may be revoked/i.test(s)) {
+    return (
+      "The refresh token appears to be revoked. Sign in to Google in the Antigravity IDE again, " +
+      "then re-run decode-antigravity-token.cjs to get a fresh token."
+    );
+  }
+  if (/expected json with.*refresh_token/i.test(s)) {
+    return (
+      'Invalid credential format. The JSON must contain a "refresh_token" field.\n\n' +
+      "If you ran decode-antigravity-token.cjs, paste the entire contents of antigravity-token.tmp.json."
+    );
+  }
+  // Fall through: return the original error, prefixed for context.
+  return s;
+}
+
 export function AddAccountWizard({ onClose, onAdded }: AddAccountWizardProps) {
   const [providers, setProviders] = useState<ProviderDescriptor[]>([]);
   const [providersLoaded, setProvidersLoaded] = useState(false);
@@ -19,8 +52,9 @@ export function AddAccountWizard({ onClose, onAdded }: AddAccountWizardProps) {
   
   // Input fields
   const [apiKey, setApiKey] = useState("");
-  const [githubOrg, setGithubOrg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  // Token masking toggle for sensitive textareas (Antigravity, Codex)
+  const [showSecret, setShowSecret] = useState(true);
 
   if (!providersLoaded) {
     setProvidersLoaded(true);
@@ -33,21 +67,21 @@ export function AddAccountWizard({ onClose, onAdded }: AddAccountWizardProps) {
     setStep("pick");
     setProvider(null);
     setApiKey("");
-    setGithubOrg("");
     setErrorMsg("");
+    setShowSecret(true);
   }
 
   async function submit() {
     if (!provider) return;
     setStep("working");
     try {
-      const creds = parseCredentials(provider, apiKey, githubOrg);
+      const creds = parseCredentials(provider, apiKey);
       const generatedLabel = defaultLabel(provider);
       await addAccount(generatedLabel, provider, creds);
       setStep("done");
       onAdded();
     } catch (e) {
-      setErrorMsg(String(e));
+      setErrorMsg(friendlyError(String(e)));
       setStep("error");
     }
   }
@@ -59,10 +93,12 @@ export function AddAccountWizard({ onClose, onAdded }: AddAccountWizardProps) {
           <h2 className="text-sm font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Add Account</h2>
           <button
             onClick={onClose}
-            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-sm font-semibold p-1"
+            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-1 flex items-center justify-center transition-colors"
             aria-label="Close"
           >
-            ✕
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
 
@@ -100,7 +136,7 @@ export function AddAccountWizard({ onClose, onAdded }: AddAccountWizardProps) {
               <p
                 className="text-xs text-zinc-400 text-center py-4"
               >
-                Loading providers…
+                Loading providers...
               </p>
             )}
           </div>
@@ -112,8 +148,8 @@ export function AddAccountWizard({ onClose, onAdded }: AddAccountWizardProps) {
               provider={provider}
               apiKey={apiKey}
               onChangeApiKey={setApiKey}
-              githubOrg={githubOrg}
-              onChangeOrg={setGithubOrg}
+              showSecret={showSecret}
+              onToggleSecret={() => setShowSecret((v) => !v)}
             />
             
             <div className="flex justify-between pt-2">
@@ -122,7 +158,7 @@ export function AddAccountWizard({ onClose, onAdded }: AddAccountWizardProps) {
               </button>
               <button
                 onClick={submit}
-                disabled={!apiKey.trim() && provider !== "github_copilot"}
+                disabled={!apiKey.trim()}
                 className="btn-primary"
               >
                 Add Account
@@ -132,13 +168,16 @@ export function AddAccountWizard({ onClose, onAdded }: AddAccountWizardProps) {
         )}
 
         {step === "working" && (
-          <p className="text-sm text-zinc-500 text-center py-6 font-medium">Validating and saving account…</p>
+          <p className="text-sm text-zinc-500 text-center py-6 font-medium">Validating and saving account...</p>
         )}
 
         {step === "done" && (
           <div className="space-y-4 text-center py-4">
-            <p className="text-sm text-zinc-900 dark:text-zinc-100 font-bold">
-              ✓ Account successfully added
+            <p className="text-sm text-zinc-900 dark:text-zinc-100 font-bold flex items-center justify-center gap-1.5">
+              <svg className="h-4.5 w-4.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Account successfully added</span>
             </p>
             <div className="flex justify-center">
               <button onClick={onClose} className="btn-primary">
@@ -150,7 +189,7 @@ export function AddAccountWizard({ onClose, onAdded }: AddAccountWizardProps) {
 
         {step === "error" && (
           <div className="space-y-4">
-            <div className="text-xs text-red-500 bg-red-500/5 border border-red-500/10 p-3 rounded-lg">
+            <div className="text-xs text-red-500 bg-red-500/5 border border-red-500/10 p-3 rounded-lg whitespace-pre-line">
               {errorMsg}
             </div>
             <div className="flex justify-between">
@@ -172,16 +211,16 @@ interface CredentialInstructionsProps {
   provider: ProviderKind;
   apiKey: string;
   onChangeApiKey: (v: string) => void;
-  githubOrg: string;
-  onChangeOrg: (v: string) => void;
+  showSecret: boolean;
+  onToggleSecret: () => void;
 }
 
 function CredentialInstructions({
   provider,
   apiKey,
   onChangeApiKey,
-  githubOrg,
-  onChangeOrg,
+  showSecret,
+  onToggleSecret,
 }: CredentialInstructionsProps) {
   if (provider === "codex") {
     return (
@@ -215,57 +254,40 @@ function CredentialInstructions({
             <li>Make sure you are logged into your Google account in the Antigravity IDE.</li>
             <li>Open a terminal in the project directory.</li>
             <li>Run: <code className="bg-zinc-200 dark:bg-zinc-850 px-1 py-0.5 rounded font-mono text-[10px]">node decode-antigravity-token.cjs</code></li>
-            <li>Copy the entire JSON content block written to the temporary file.</li>
-            <li>Paste the JSON content below, including <code className="bg-zinc-200 dark:bg-zinc-850 px-1 py-0.5 rounded font-mono text-[10px]">client_secret</code> unless the app was launched with <code className="bg-zinc-200 dark:bg-zinc-850 px-1 py-0.5 rounded font-mono text-[10px]">TOKENMAXXER_GOOGLE_CLIENT_SECRET</code>.</li>
+            <li>Open <code className="bg-zinc-200 dark:bg-zinc-850 px-1 py-0.5 rounded font-mono text-[10px]">antigravity-token.tmp.json</code> and copy the entire JSON content.</li>
+            <li>Paste the JSON content below.</li>
           </ol>
-        </div>
-        <textarea
-          value={apiKey}
-          onChange={(e) => onChangeApiKey(e.target.value)}
-          rows={5}
-          placeholder={'{ "refresh_token": "...", "client_secret": "...", "email": "you@gmail.com" }'}
-          className="w-full rounded-lg bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-2 font-mono text-[11px] focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 text-zinc-900 dark:text-zinc-100"
-        />
-      </div>
-    );
-  }
-
-  if (provider === "github_copilot") {
-    return (
-      <div className="space-y-3">
-        <div className="bg-zinc-50 dark:bg-zinc-950 p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 text-xs space-y-1.5 text-zinc-600 dark:text-zinc-400">
-          <p className="font-semibold text-zinc-950 dark:text-zinc-100">Step-by-step Setup Instructions:</p>
-          <ol className="list-decimal list-inside space-y-1 pl-1">
-            <li>Go to GitHub settings &gt; **Developer settings** &gt; **Personal access tokens**.</li>
-            <li>Generate a token (classic) with <code className="bg-zinc-200 dark:bg-zinc-850 px-1 py-0.5 rounded font-mono text-[10px]">read:org</code> scope.</li>
-            <li>Copy the generated token and paste it in the field below.</li>
-            <li>Optional: Enter organization name to track corporate seat counts.</li>
-          </ol>
-        </div>
-        <div className="space-y-3">
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-              GitHub Personal Access Token (PAT)
-            </label>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => onChangeApiKey(e.target.value)}
-              placeholder="Paste GitHub token"
-              className="w-full rounded-lg px-3 py-2 text-sm bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 text-zinc-900 dark:text-zinc-100"
-            />
+          <div className="mt-2 text-[10px] text-amber-600 dark:text-amber-400 leading-normal border-t border-zinc-200/60 dark:border-zinc-800/60 pt-1.5 flex items-start gap-1">
+            <svg className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span>
+              The decoded token does <strong>not</strong> include <code className="bg-zinc-200 dark:bg-zinc-850 px-1 py-0.5 rounded font-mono">client_secret</code>.
+              Either add <code className="bg-zinc-200 dark:bg-zinc-850 px-1 py-0.5 rounded font-mono">"client_secret": "YOUR_SECRET"</code> to the JSON,
+              or launch TokenMaxxer with the <code className="bg-zinc-200 dark:bg-zinc-850 px-1 py-0.5 rounded font-mono">TOKENMAXXER_GOOGLE_CLIENT_SECRET</code> environment variable set.
+            </span>
           </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-              Organization Name (Optional)
-            </label>
-            <input
-              value={githubOrg}
-              onChange={(e) => onChangeOrg(e.target.value)}
-              placeholder="e.g. google"
-              className="w-full rounded-lg px-3 py-2 text-sm bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 text-zinc-900 dark:text-zinc-100"
-            />
-          </div>
+        </div>
+        <div className="relative">
+          <textarea
+            value={apiKey}
+            onChange={(e) => onChangeApiKey(e.target.value)}
+            rows={5}
+            placeholder={'{ "refresh_token": "1//...", "client_secret": "...", "access_token": "ya29...", "expires_at": 12345 }'}
+            className={`w-full rounded-lg bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-2 pr-16 font-mono text-[11px] focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 text-zinc-900 dark:text-zinc-100 ${
+              !showSecret && apiKey ? "text-transparent selection:text-transparent caret-zinc-400" : ""
+            }`}
+            style={!showSecret && apiKey ? ({ WebkitTextSecurity: "disc" } as unknown as React.CSSProperties) : undefined}
+          />
+          {apiKey && (
+            <button
+              type="button"
+              onClick={onToggleSecret}
+              className="absolute top-2 right-2 text-[10px] font-semibold text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded"
+            >
+              {showSecret ? "Hide" : "Show"}
+            </button>
+          )}
         </div>
       </div>
     );
@@ -308,22 +330,46 @@ function CredentialInstructions({
   );
 }
 
-function parseCredentials(provider: ProviderKind, key: string, org: string): unknown {
+function parseCredentials(provider: ProviderKind, key: string): unknown {
   const trimmed = key.trim();
-  if (provider === "github_copilot") {
-    return { token: trimmed, org: org.trim() || null };
-  }
-  
+
   if (provider === "deepseek" || provider === "z_ai") {
     return trimmed;
   }
 
   // Codex / Antigravity expect JSON string
+  let parsed: Record<string, unknown>;
   try {
-    return JSON.parse(trimmed);
+    parsed = JSON.parse(trimmed);
   } catch {
     throw new Error("Credentials must be valid JSON for this provider.");
   }
+
+  // Antigravity-specific pre-validation: check the JSON shape before sending
+  // to the backend, so the user gets an immediate, clear error.
+  if (provider === "antigravity") {
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      throw new Error(
+        'Expected a JSON object with a "refresh_token" field.\n' +
+        'Example: { "refresh_token": "1//...", "client_secret": "..." }'
+      );
+    }
+    // Strip the "type" field if present (older script versions or gcloud ADC
+    // files include "type": "authorized_user" which the backend doesn't need).
+    if ("type" in parsed) {
+      delete (parsed as Record<string, unknown>).type;
+    }
+    if (!parsed.refresh_token || typeof parsed.refresh_token !== "string") {
+      const keys = Object.keys(parsed).join(", ") || "(empty)";
+      throw new Error(
+        `Missing required field "refresh_token" in the pasted JSON.\n` +
+        `Found keys: ${keys}\n\n` +
+        `Make sure you pasted the full contents of antigravity-token.tmp.json.`
+      );
+    }
+  }
+
+  return parsed;
 }
 
 function defaultLabel(provider: ProviderKind): string {
@@ -336,7 +382,5 @@ function defaultLabel(provider: ProviderKind): string {
       return "DeepSeek Account";
     case "z_ai":
       return "Z.ai Account";
-    case "github_copilot":
-      return "GitHub Copilot";
   }
 }

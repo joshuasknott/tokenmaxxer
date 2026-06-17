@@ -11,7 +11,10 @@
 //! Response is a map of model id -> { displayName, quotaInfo: { remainingFraction, resetTime } }.
 //! remainingFraction is 0.0..=1.0; we convert to used_percent = (1 - remaining) * 100.
 
-use super::{Credentials, Provider, ProviderError, Snapshot, UsageWindow};
+use super::{
+    apply_weekly_cap_to_five_hour_window, Credentials, FetchResult, Provider, ProviderError,
+    Snapshot, UsageWindow,
+};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -25,8 +28,7 @@ const FETCH_MODELS_URL: &str =
 const TOKEN_REFRESH_URL: &str = "https://oauth2.googleapis.com/token";
 
 /// Google OAuth client id used by Antigravity / Gemini CLI. Required to refresh.
-const GOOGLE_CLIENT_ID: &str =
-    "32555940559.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID: &str = "32555940559.apps.googleusercontent.com";
 const GOOGLE_CLIENT_SECRET_ENV: &str = "TOKENMAXXER_GOOGLE_CLIENT_SECRET";
 
 /// Stored in the vault, one set per Google account.
@@ -59,8 +61,14 @@ impl AntigravityRemoteProvider {
 
     fn parse_creds(creds: &Credentials) -> Result<GoogleTokens, ProviderError> {
         serde_json::from_value::<GoogleTokens>(creds.clone()).map_err(|e| {
+            let keys = creds
+                .as_object()
+                .map(|m| m.keys().map(|k| k.as_str()).collect::<Vec<_>>().join(", "))
+                .unwrap_or_else(|| "(not a JSON object)".into());
             ProviderError::InvalidCredentials(format!(
-                "expected {{ refresh_token, client_secret?, email? }}: {e}"
+                "expected JSON with 'refresh_token' (required), plus optional \
+                 'client_secret', 'email', 'access_token', 'expires_at'. \
+                 Got keys: [{keys}]. Parse error: {e}"
             ))
         })
     }
@@ -81,7 +89,12 @@ impl AntigravityRemoteProvider {
             .or(env_client_secret.as_deref())
             .ok_or_else(|| {
                 ProviderError::InvalidCredentials(format!(
-                    "missing Google OAuth client secret; include client_secret in credentials or set {GOOGLE_CLIENT_SECRET_ENV}"
+                    "Missing client_secret. The Antigravity IDE's token store does not \
+                     include a client secret, so you must supply it separately.\n\
+                     \n\
+                     Option 1: Add \"client_secret\": \"YOUR_SECRET\" to the JSON you paste.\n\
+                     Option 2: Set the {GOOGLE_CLIENT_SECRET_ENV} environment variable \
+                     before launching TokenMaxxer."
                 ))
             })?;
 
@@ -138,7 +151,7 @@ impl AntigravityRemoteProvider {
 
         if resp.status() == reqwest::StatusCode::UNAUTHORIZED {
             return Err(ProviderError::InvalidCredentials(
-                "unauthorized — refresh token may be revoked".into(),
+                "unauthorized - refresh token may be revoked".into(),
             ));
         }
         if !resp.status().is_success() {
@@ -176,15 +189,35 @@ impl Provider for AntigravityRemoteProvider {
         &self,
         account_id: &str,
         creds: &Credentials,
-    ) -> Result<Snapshot, ProviderError> {
+    ) -> Result<FetchResult, ProviderError> {
         let tokens = Self::parse_creds(creds)?;
         let refreshed = self.refresh(&tokens).await?;
-        self.fetch_models(
-            refreshed.access_token.as_deref().unwrap_or(""),
-            account_id,
-            tokens.email.as_deref(),
-        )
-        .await
+
+        // Detect whether the refresh actually produced new tokens. If the
+        // access token changed (or was previously absent), we need to
+        // persist the updated set so later polls can reuse the cached token
+        // without hitting Google's token endpoint every cycle.
+        let token_changed = refreshed.access_token != tokens.access_token
+            || refreshed.expires_at != tokens.expires_at;
+
+        let snapshot = self
+            .fetch_models(
+                refreshed.access_token.as_deref().unwrap_or(""),
+                account_id,
+                refreshed.email.as_deref().or(tokens.email.as_deref()),
+            )
+            .await?;
+
+        let updated_credentials = if token_changed {
+            Some(serde_json::to_value(&refreshed).unwrap_or_default())
+        } else {
+            None
+        };
+
+        Ok(FetchResult {
+            snapshot,
+            updated_credentials,
+        })
     }
 }
 
@@ -222,19 +255,28 @@ fn models_to_snapshot(
     use super::ModelQuota;
     let now = Utc::now();
 
-    // Collapse all per-model quotas into one window ("5-hour window") as the
-    // headline bar, plus expose each model as a breakdown row. The headline
-    // uses the most-constrained (highest used) model so the bar reflects the
-    // real pressure point.
-    let mut models: Vec<ModelQuota> = Vec::new();
-    let mut max_used: Option<f64> = None;
-    let mut earliest_reset: Option<DateTime<Utc>> = None;
+    let mut gemini_models = Vec::new();
+    let mut weekly_models = Vec::new();
+    let mut gemini_max_used: Option<f64> = None;
+    let mut gemini_earliest_reset: Option<DateTime<Utc>> = None;
+    let mut weekly_max_used: Option<f64> = None;
+    let mut weekly_earliest_reset: Option<DateTime<Utc>> = None;
 
     for (id, m) in payload.models {
         let label = m.display_name.unwrap_or_else(|| id.clone());
+        if label.is_empty() {
+            continue;
+        }
+        if !label.contains("Gemini") && !label.contains("Claude") && !label.contains("GPT") {
+            continue;
+        }
+
+        let vendor = super::ModelVendor::from_label(&label);
         let (used, reset) = match m.quota_info {
             Some(q) => {
-                let used = q.remaining_fraction.map(|r| (1.0 - r).clamp(0.0, 1.0) * 100.0);
+                let used = q
+                    .remaining_fraction
+                    .map(|r| (1.0 - r).clamp(0.0, 1.0) * 100.0);
                 let reset = q
                     .reset_time
                     .as_deref()
@@ -244,39 +286,71 @@ fn models_to_snapshot(
             }
             None => (None, None),
         };
-        if let Some(u) = used {
-            max_used = Some(max_used.map_or(u, |prev| prev.max(u)));
-        }
-        if let Some(r) = reset {
-            earliest_reset = Some(earliest_reset.map_or(r, |prev| prev.min(r)));
-        }
-        models.push(ModelQuota {
-            vendor: super::ModelVendor::from_label(&label),
+
+        let mq = ModelQuota {
+            vendor,
             label,
             model_id: id,
             used_percent: used,
             reset_time: reset,
-        });
+        };
+
+        match vendor {
+            super::ModelVendor::Gemini => {
+                if let Some(u) = used {
+                    gemini_max_used = Some(gemini_max_used.map_or(u, |prev| prev.max(u)));
+                }
+                if let Some(r) = reset {
+                    gemini_earliest_reset =
+                        Some(gemini_earliest_reset.map_or(r, |prev| prev.min(r)));
+                }
+                gemini_models.push(mq);
+            }
+            super::ModelVendor::Claude | super::ModelVendor::Gpt => {
+                if let Some(u) = used {
+                    weekly_max_used = Some(weekly_max_used.map_or(u, |prev| prev.max(u)));
+                }
+                if let Some(r) = reset {
+                    weekly_earliest_reset =
+                        Some(weekly_earliest_reset.map_or(r, |prev| prev.min(r)));
+                }
+                weekly_models.push(mq);
+            }
+            super::ModelVendor::Other => {
+                if let Some(u) = used {
+                    gemini_max_used = Some(gemini_max_used.map_or(u, |prev| prev.max(u)));
+                }
+                if let Some(r) = reset {
+                    gemini_earliest_reset =
+                        Some(gemini_earliest_reset.map_or(r, |prev| prev.min(r)));
+                }
+                gemini_models.push(mq);
+            }
+        }
     }
 
-    // Keep model rows tidy and avoid noisy internal/autocomplete entries.
-    models.retain(|m| {
-        !m.label.is_empty()
-            && (m.label.contains("Gemini")
-                || m.label.contains("Claude")
-                || m.label.contains("GPT"))
-    });
+    let mut windows = Vec::new();
+    if !gemini_models.is_empty() {
+        windows.push(UsageWindow {
+            label: "5-hour window".into(),
+            used_percent: gemini_max_used.unwrap_or(0.0),
+            limit_window_seconds: Some(5 * 60 * 60),
+            resets_at: gemini_earliest_reset.unwrap_or(now),
+            models: gemini_models,
+        });
+    }
+    if !weekly_models.is_empty() {
+        windows.push(UsageWindow {
+            label: "Weekly window".into(),
+            used_percent: weekly_max_used.unwrap_or(0.0),
+            limit_window_seconds: Some(7 * 24 * 60 * 60),
+            resets_at: weekly_earliest_reset.unwrap_or(now),
+            models: weekly_models,
+        });
+    }
+    apply_weekly_cap_to_five_hour_window(&mut windows);
 
-    let headline_used = max_used.unwrap_or(0.0);
-    let window = UsageWindow {
-        label: "5-hour window".into(),
-        used_percent: headline_used,
-        limit_window_seconds: Some(5 * 60 * 60),
-        resets_at: earliest_reset.unwrap_or(now),
-        models,
-    };
-
-    let cost = super::cost::for_antigravity(&[window.clone()]);
+    let cost = super::cost::for_antigravity(&windows);
 
     Snapshot {
         account_id: account_id.to_string(),
@@ -284,10 +358,179 @@ fn models_to_snapshot(
         plan_name: Some("Gemini".into()),
         account_detail: email.map(|s| s.to_string()),
         provider_kind: Some("antigravity".into()),
-        windows: vec![window],
+        windows,
         cost,
         balance_gbp: None,
         is_stale: false,
         error: None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_creds_with_all_fields() {
+        let creds = serde_json::json!({
+            "refresh_token": "rt-google",
+            "client_secret": "secret-123",
+            "email": "user@gmail.com",
+            "access_token": "at-cached",
+            "expires_at": 9999999999_i64
+        });
+        let tokens = AntigravityRemoteProvider::parse_creds(&creds).unwrap();
+        assert_eq!(tokens.refresh_token, "rt-google");
+        assert_eq!(tokens.client_secret, Some("secret-123".into()));
+        assert_eq!(tokens.email, Some("user@gmail.com".into()));
+        assert_eq!(tokens.access_token, Some("at-cached".into()));
+        assert_eq!(tokens.expires_at, Some(9999999999));
+    }
+
+    #[test]
+    fn parse_creds_minimal() {
+        let creds = serde_json::json!({
+            "refresh_token": "rt-only"
+        });
+        let tokens = AntigravityRemoteProvider::parse_creds(&creds).unwrap();
+        assert_eq!(tokens.refresh_token, "rt-only");
+        assert!(tokens.client_secret.is_none());
+        assert!(tokens.email.is_none());
+        assert!(tokens.access_token.is_none());
+        assert!(tokens.expires_at.is_none());
+    }
+
+    #[test]
+    fn parse_creds_rejects_missing_refresh_token() {
+        let creds = serde_json::json!({ "email": "user@gmail.com" });
+        assert!(AntigravityRemoteProvider::parse_creds(&creds).is_err());
+    }
+
+    #[test]
+    fn google_tokens_round_trip_serialization() {
+        let tokens = GoogleTokens {
+            refresh_token: "rt".into(),
+            client_secret: Some("cs".into()),
+            email: Some("e@g.com".into()),
+            access_token: Some("at".into()),
+            expires_at: Some(12345),
+        };
+        let serialized = serde_json::to_value(&tokens).unwrap();
+        let deserialized: GoogleTokens = serde_json::from_value(serialized).unwrap();
+        assert_eq!(deserialized.refresh_token, "rt");
+        assert_eq!(deserialized.access_token, Some("at".into()));
+        assert_eq!(deserialized.expires_at, Some(12345));
+    }
+
+    #[test]
+    fn token_change_detection_when_access_token_differs() {
+        let old = GoogleTokens {
+            refresh_token: "rt".into(),
+            client_secret: None,
+            email: None,
+            access_token: None,
+            expires_at: None,
+        };
+        let refreshed = GoogleTokens {
+            refresh_token: "rt".into(),
+            client_secret: None,
+            email: None,
+            access_token: Some("new-at".into()),
+            expires_at: Some(99999),
+        };
+        assert!(
+            refreshed.access_token != old.access_token || refreshed.expires_at != old.expires_at
+        );
+    }
+
+    #[test]
+    fn token_change_detection_when_unchanged() {
+        let old = GoogleTokens {
+            refresh_token: "rt".into(),
+            client_secret: None,
+            email: None,
+            access_token: Some("same-at".into()),
+            expires_at: Some(99999),
+        };
+        let refreshed = old.clone();
+        assert!(
+            !(refreshed.access_token != old.access_token || refreshed.expires_at != old.expires_at)
+        );
+    }
+
+    #[tokio::test]
+    async fn refresh_accepts_valid_cached_access_token_without_client_secret() {
+        let provider = AntigravityRemoteProvider::new();
+        let tokens = GoogleTokens {
+            refresh_token: "rt".into(),
+            client_secret: None,
+            email: None,
+            access_token: Some("cached-at".into()),
+            expires_at: Some(Utc::now().timestamp() + 3600),
+        };
+
+        let refreshed = provider.refresh(&tokens).await.unwrap();
+        assert_eq!(refreshed.access_token, Some("cached-at".into()));
+        assert_eq!(refreshed.expires_at, tokens.expires_at);
+    }
+
+    #[test]
+    fn test_models_to_snapshot_splits_windows() {
+        use std::collections::BTreeMap;
+
+        let mut models = BTreeMap::new();
+        models.insert(
+            "gemini-1.5-pro".to_string(),
+            RemoteModel {
+                display_name: Some("Gemini 1.5 Pro".to_string()),
+                quota_info: Some(RemoteQuotaInfo {
+                    remaining_fraction: Some(0.6),
+                    reset_time: Some("2026-06-17T12:00:00Z".to_string()),
+                }),
+            },
+        );
+        models.insert(
+            "claude-3-5-sonnet".to_string(),
+            RemoteModel {
+                display_name: Some("Claude 3.5 Sonnet".to_string()),
+                quota_info: Some(RemoteQuotaInfo {
+                    remaining_fraction: Some(0.4),
+                    reset_time: Some("2026-06-17T13:00:00Z".to_string()),
+                }),
+            },
+        );
+        models.insert(
+            "gpt-4o".to_string(),
+            RemoteModel {
+                display_name: Some("GPT-4o".to_string()),
+                quota_info: Some(RemoteQuotaInfo {
+                    remaining_fraction: Some(0.7),
+                    reset_time: Some("2026-06-17T14:00:00Z".to_string()),
+                }),
+            },
+        );
+
+        let payload = FetchAvailableModelsResponse { models };
+        let snapshot = models_to_snapshot("test-acct", Some("test@google.com"), payload);
+
+        assert_eq!(snapshot.account_id, "test-acct");
+        assert_eq!(snapshot.account_detail, Some("test@google.com".to_string()));
+        assert_eq!(snapshot.windows.len(), 2);
+
+        let w5 = &snapshot.windows[0];
+        assert_eq!(w5.label, "5-hour window");
+        assert!((w5.used_percent - 60.0).abs() < 0.001);
+        assert_eq!(w5.models.len(), 1);
+        assert_eq!(w5.models[0].model_id, "gemini-1.5-pro");
+        assert_eq!(w5.models[0].vendor, super::super::ModelVendor::Gemini);
+
+        let ww = &snapshot.windows[1];
+        assert_eq!(ww.label, "Weekly window");
+        assert!((ww.used_percent - 60.0).abs() < 0.001);
+        assert_eq!(ww.models.len(), 2);
+        assert_eq!(ww.models[0].model_id, "claude-3-5-sonnet");
+        assert_eq!(ww.models[0].vendor, super::super::ModelVendor::Claude);
+        assert_eq!(ww.models[1].model_id, "gpt-4o");
+        assert_eq!(ww.models[1].vendor, super::super::ModelVendor::Gpt);
     }
 }
