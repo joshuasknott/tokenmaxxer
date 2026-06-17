@@ -3,6 +3,7 @@ name = "tokenmaxxer"
 version = "0.1.0"
 description = "Provider-agnostic desktop usage tracker for LLM subscriptions"
 authors = ["Josh"]
+license = "MIT"
 edition = "2021"
 rust-version = "1.77"
 default-run = "tokenmaxxer"

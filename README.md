@@ -94,6 +94,11 @@ cd src-tauri
 TOKENMAXXER_RUN_NATIVE_KEYRING_TESTS=1 cargo test native_keyring_round_trips_when_enabled
 ```
 
+## License
+
+TokenMaxxer is released under the MIT License. See [LICENSE](LICENSE) for
+details.
+
 ## Credentials
 
 Use the in-app add-account flow. The app validates credentials before saving

@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Provider-agnostic desktop usage tracker for LLM subscriptions (Codex, Gemini/Antigravity, ...).",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
