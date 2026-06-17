@@ -5,7 +5,7 @@ description = "Provider-agnostic desktop usage tracker for LLM subscriptions"
 authors = ["Josh"]
 license = "MIT"
 edition = "2021"
-rust-version = "1.77"
+rust-version = "1.77.2"
 default-run = "tokenmaxxer"
 
 [lib]
@@ -29,6 +29,8 @@ async-trait = "0.1"
 log = "0.4"
 sysinfo = "0.32"
 dirs = "6"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.61", features = [

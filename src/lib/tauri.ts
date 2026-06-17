@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { relaunch } from "@tauri-apps/plugin-process";
+import { check, type DownloadEvent } from "@tauri-apps/plugin-updater";
 import type {
   AccountConfig,
   AppConfig,
@@ -48,3 +50,18 @@ export function onUsageUpdate(
 ): Promise<UnlistenFn> {
   return listen<Snapshot>("usage:update", (e) => handler(e.payload));
 }
+
+// ---- App updates ----
+
+export type AppUpdate = NonNullable<Awaited<ReturnType<typeof check>>>;
+export type UpdateDownloadEvent = DownloadEvent;
+
+export const checkForAppUpdate = (): Promise<AppUpdate | null> =>
+  check({ timeout: 30_000 });
+
+export const installAppUpdate = (
+  update: AppUpdate,
+  onEvent: (event: UpdateDownloadEvent) => void
+): Promise<void> => update.downloadAndInstall(onEvent, { timeout: 300_000 });
+
+export const relaunchApp = (): Promise<void> => relaunch();

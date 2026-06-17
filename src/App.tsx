@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import {
+  FiAlertCircle,
+  FiCheckCircle,
+  FiDownload,
   FiPlus,
   FiRefreshCw,
   FiSettings,
@@ -12,6 +15,10 @@ import {
   removeAccount,
   getConfig,
   getHistory,
+  checkForAppUpdate,
+  installAppUpdate,
+  relaunchApp,
+  type AppUpdate,
 } from "./lib/tauri";
 import { AccountCard } from "./components/AccountCard";
 import { AccountDetailsModal } from "./components/AccountDetailsModal";
@@ -371,6 +378,80 @@ function SettingsPanel({
   onThemeChange: (mode: "light" | "dark") => void;
   onClose: () => void;
 }) {
+  const [updateStatus, setUpdateStatus] = useState<
+    "idle" | "checking" | "available" | "current" | "downloading" | "installed" | "error"
+  >("idle");
+  const [availableUpdate, setAvailableUpdate] = useState<AppUpdate | null>(null);
+  const [updateMessage, setUpdateMessage] = useState<string | null>(null);
+  const [downloadedBytes, setDownloadedBytes] = useState(0);
+  const [contentLength, setContentLength] = useState<number | null>(null);
+
+  const progressPercent =
+    contentLength && contentLength > 0
+      ? Math.min(100, Math.round((downloadedBytes / contentLength) * 100))
+      : null;
+
+  const handleCheckForUpdates = async () => {
+    setUpdateStatus("checking");
+    setUpdateMessage(null);
+    setDownloadedBytes(0);
+    setContentLength(null);
+    try {
+      const update = await checkForAppUpdate();
+      if (!update) {
+        setAvailableUpdate(null);
+        setUpdateStatus("current");
+        setUpdateMessage("TokenMaxxer is up to date.");
+        return;
+      }
+
+      setAvailableUpdate(update);
+      setUpdateStatus("available");
+      setUpdateMessage(`Version ${update.version} is ready to install.`);
+    } catch (e) {
+      setAvailableUpdate(null);
+      setUpdateStatus("error");
+      setUpdateMessage(String(e));
+    }
+  };
+
+  const handleInstallUpdate = async () => {
+    if (!availableUpdate) return;
+    setUpdateStatus("downloading");
+    setUpdateMessage("Downloading update...");
+    setDownloadedBytes(0);
+    setContentLength(null);
+
+    let totalDownloaded = 0;
+    try {
+      await installAppUpdate(availableUpdate, (event) => {
+        switch (event.event) {
+          case "Started":
+            totalDownloaded = 0;
+            setDownloadedBytes(0);
+            setContentLength(event.data.contentLength ?? null);
+            break;
+          case "Progress":
+            totalDownloaded += event.data.chunkLength;
+            setDownloadedBytes(totalDownloaded);
+            break;
+          case "Finished":
+            setUpdateMessage("Installing update...");
+            break;
+        }
+      });
+      setUpdateStatus("installed");
+      setUpdateMessage("Update installed. Restarting TokenMaxxer...");
+      await relaunchApp();
+    } catch (e) {
+      setUpdateStatus("error");
+      setUpdateMessage(String(e));
+    }
+  };
+
+  const updateActionDisabled =
+    updateStatus === "checking" || updateStatus === "downloading";
+
   return (
     <div
       onClick={(e) => {
@@ -419,6 +500,68 @@ function SettingsPanel({
                 </span>
               </button>
             ))}
+          </div>
+        </div>
+
+        <div className="mt-6 border-t border-[var(--border)] pt-5">
+          <div className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--text-faint)]">
+            Updates
+          </div>
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-elev-2)] p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-sm font-bold">
+                  {updateStatus === "error" ? (
+                    <FiAlertCircle className="h-4 w-4 text-red-400" />
+                  ) : updateStatus === "current" || updateStatus === "installed" ? (
+                    <FiCheckCircle className="h-4 w-4 text-emerald-400" />
+                  ) : (
+                    <FiDownload className="h-4 w-4 text-[var(--text-muted)]" />
+                  )}
+                  App updates
+                </div>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                  {updateMessage ??
+                    "Check GitHub Releases for a signed TokenMaxxer update."}
+                </p>
+              </div>
+
+              {availableUpdate && updateStatus === "available" ? (
+                <button
+                  onClick={handleInstallUpdate}
+                  disabled={updateActionDisabled}
+                  className="btn-primary inline-flex shrink-0 items-center gap-2 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <FiDownload className="h-4 w-4" />
+                  Install
+                </button>
+              ) : (
+                <button
+                  onClick={handleCheckForUpdates}
+                  disabled={updateActionDisabled}
+                  className="btn-ghost inline-flex shrink-0 items-center gap-2 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <FiRefreshCw
+                    className={`h-4 w-4 ${updateStatus === "checking" ? "animate-spin" : ""}`}
+                  />
+                  Check
+                </button>
+              )}
+            </div>
+
+            {updateStatus === "downloading" && (
+              <div className="mt-3">
+                <div className="h-2 overflow-hidden rounded-full bg-[var(--track)]">
+                  <div
+                    className="h-full rounded-full bg-[var(--accent-color)] transition-all"
+                    style={{ width: `${progressPercent ?? 12}%` }}
+                  />
+                </div>
+                <div className="mt-1 text-right text-[11px] font-semibold text-[var(--text-muted)]">
+                  {progressPercent === null ? "Downloading" : `${progressPercent}%`}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

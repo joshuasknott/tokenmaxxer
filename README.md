@@ -57,6 +57,48 @@ The platform-specific Tauri config files are:
 - `src-tauri/tauri.macos.conf.json` for `.app` and `.dmg` bundles
 - `src-tauri/tauri.linux.conf.json` for AppImage and `.deb` bundles
 
+## Auto-Updates
+
+TokenMaxxer uses the official Tauri v2 updater plugin. The app checks:
+
+```text
+https://github.com/joshuasknott/tokenmaxxer/releases/latest/download/latest.json
+```
+
+Tauri updater artifacts must be signed. This cannot be disabled. The current
+`src-tauri/tauri.conf.json` contains the safe placeholder
+`REPLACE_WITH_TAURI_UPDATER_PUBLIC_KEY`; releases are blocked until a real
+Tauri updater keypair is generated and the public key replaces that value.
+
+Generate the keypair on a trusted machine:
+
+```bash
+pnpm tauri signer generate -w ~/.tauri/tokenmaxxer.key
+```
+
+Then:
+
+1. Put the contents of `~/.tauri/tokenmaxxer.key.pub` into
+   `src-tauri/tauri.conf.json` under `plugins.updater.pubkey`.
+2. Store the private key path or private key content in the GitHub Actions
+   secret `TAURI_SIGNING_PRIVATE_KEY`.
+3. If the key has a password, store it in
+   `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
+4. Do not commit the private key or password.
+
+When a `v*` tag is pushed, the `Release packages` workflow builds signed
+updater artifacts, uploads the `.sig` files, and generates a GitHub Releases
+compatible `latest.json`. The manifest maps:
+
+- `windows-x86_64` to the signed NSIS installer
+- `darwin-x86_64` and `darwin-aarch64` to the same signed universal macOS
+  `.app.tar.gz`
+- `linux-x86_64` to the signed AppImage
+
+The settings panel in the desktop app checks that manifest, downloads an
+available update, installs it, and restarts the app after installation where
+the platform allows it. On Windows, Tauri exits the app during install.
+
 The `Release packages` GitHub Actions workflow can be started manually from
 Actions, or by pushing a `v*` tag such as `v0.1.0`. It builds Windows, macOS,
 and Linux artifacts on their native hosted runners, uploads per-platform

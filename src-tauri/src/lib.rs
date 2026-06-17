@@ -16,6 +16,8 @@ pub mod vault;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             // Make sure the snapshot cache exists in managed state.
             state::AppState::ensure_cache(app.handle());
