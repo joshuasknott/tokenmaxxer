@@ -13,6 +13,7 @@
     "release:windows": "tauri build --bundles nsis --ci",
     "release:macos": "tauri build --target universal-apple-darwin --bundles app,dmg --ci",
     "release:linux": "tauri build --bundles appimage,deb --ci",
+    "render:product-shot": "tailwindcss -i ./src/index.css -o ./remotion/remotion.css && remotion still remotion/index.tsx TokenMaxxerProductShot public/tokenmaxxer-product-shot.png --overwrite && remotion still remotion/index.tsx TokenMaxxerAddAccountShot public/tokenmaxxer-add-account-shot.png --overwrite && remotion still remotion/index.tsx TokenMaxxerAccountDetailsShot public/tokenmaxxer-account-details-shot.png --overwrite",
     "lint": "eslint src eslint.config.js"
   },
   "dependencies": {
@@ -25,6 +26,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@remotion/cli": "^4.0.478",
     "@tauri-apps/cli": "^2.0.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
@@ -33,6 +35,7 @@
     "eslint": "^10.5.0",
     "globals": "^17.6.0",
     "postcss": "^8.4.49",
+    "remotion": "^4.0.478",
     "sql.js": "^1.14.1",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.6.0",

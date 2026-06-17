@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ProviderDescriptor, ProviderKind } from "../types";
 import { addAccount, listProviders } from "../lib/tauri";
 import { ProviderLogo } from "./ProviderLogo";
@@ -7,6 +7,7 @@ import { providerStyle } from "../lib/providerStyle";
 interface AddAccountWizardProps {
   onClose: () => void;
   onAdded: () => void;
+  providersOverride?: ProviderDescriptor[];
 }
 
 type Step = "pick" | "credentials" | "working" | "done" | "error";
@@ -44,9 +45,13 @@ function friendlyError(raw: string): string {
   return s;
 }
 
-export function AddAccountWizard({ onClose, onAdded }: AddAccountWizardProps) {
-  const [providers, setProviders] = useState<ProviderDescriptor[]>([]);
-  const [providersLoaded, setProvidersLoaded] = useState(false);
+export function AddAccountWizard({
+  onClose,
+  onAdded,
+  providersOverride,
+}: AddAccountWizardProps) {
+  const [providers, setProviders] = useState<ProviderDescriptor[]>(() => providersOverride ?? []);
+  const [providersLoaded, setProvidersLoaded] = useState(() => Boolean(providersOverride));
   const [step, setStep] = useState<Step>("pick");
   const [provider, setProvider] = useState<ProviderKind | null>(null);
   
@@ -56,12 +61,31 @@ export function AddAccountWizard({ onClose, onAdded }: AddAccountWizardProps) {
   // Token masking toggle for sensitive textareas (Antigravity, Codex)
   const [showSecret, setShowSecret] = useState(true);
 
-  if (!providersLoaded) {
-    setProvidersLoaded(true);
+  useEffect(() => {
+    let active = true;
+
+    if (providersOverride) {
+      setProviders(providersOverride);
+      setProvidersLoaded(true);
+      return;
+    }
+
+    setProvidersLoaded(false);
     void listProviders()
-      .then(setProviders)
-      .catch((e) => setErrorMsg(String(e)));
-  }
+      .then((items) => {
+        if (active) setProviders(items);
+      })
+      .catch((e) => {
+        if (active) setErrorMsg(String(e));
+      })
+      .finally(() => {
+        if (active) setProvidersLoaded(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [providersOverride]);
 
   function reset() {
     setStep("pick");
@@ -132,7 +156,7 @@ export function AddAccountWizard({ onClose, onAdded }: AddAccountWizardProps) {
                 </button>
               );
             })}
-            {providers.length === 0 && (
+            {!providersLoaded && providers.length === 0 && (
               <p
                 className="text-xs text-zinc-400 text-center py-4"
               >

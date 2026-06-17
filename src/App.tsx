@@ -217,7 +217,7 @@ function DesktopApp() {
                       </span>
                     </h2>
                     <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-                      Provider quotas, model usage, and local refresh controls.
+                      Provider quotas, reset windows, and local refresh controls.
                     </p>
                   </div>
                   <div className="flex rounded-lg border border-[var(--border)] bg-[var(--bg-elev-2)] p-0.5">

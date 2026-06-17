@@ -18,6 +18,7 @@ interface AccountDetailsModalProps {
   onClose: () => void;
   onRetry: (id: string) => void;
   onRemove: (id: string) => void;
+  historyOverride?: UsageEvent[];
 }
 
 export function AccountDetailsModal({
@@ -26,6 +27,7 @@ export function AccountDetailsModal({
   onClose,
   onRetry,
   onRemove,
+  historyOverride,
 }: AccountDetailsModalProps) {
   const style = providerStyle(account.provider);
   const stale = snapshot?.isStale ?? false;
@@ -36,6 +38,13 @@ export function AccountDetailsModal({
 
   useEffect(() => {
     let active = true;
+
+    if (historyOverride) {
+      setHistory(historyOverride);
+      setHistoryLoaded(true);
+      return;
+    }
+
     const loadHistory = async () => {
       try {
         const h = await getHistory(account.id);
@@ -52,7 +61,7 @@ export function AccountDetailsModal({
     return () => {
       active = false;
     };
-  }, [account.id, snapshot]);
+  }, [account.id, snapshot, historyOverride]);
 
   return (
     <div

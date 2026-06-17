@@ -9,7 +9,7 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 import type { ReactNode } from "react";
-import type { AccountConfig, ModelVendor, Snapshot } from "../types";
+import type { AccountConfig, Snapshot } from "../types";
 import { UsageBar } from "./UsageBar";
 import { ProviderLogo } from "./ProviderLogo";
 import {
@@ -21,7 +21,7 @@ import {
   formatTokens,
   roundPercent,
 } from "../lib/format";
-import { providerStyle, vendorDot } from "../lib/providerStyle";
+import { providerStyle } from "../lib/providerStyle";
 
 interface AccountCardProps {
   account: AccountConfig;
@@ -45,7 +45,7 @@ export function AccountCard({
   return (
     <article
       onClick={onClick}
-      className={`group relative flex min-h-[250px] flex-col overflow-hidden rounded-lg border bg-[var(--bg-elev)] transition ${
+      className={`group relative flex min-h-[220px] flex-col overflow-hidden rounded-lg border bg-[var(--bg-elev)] transition ${
         onClick ? "cursor-pointer hover:border-[var(--border-strong)] hover:shadow-sm" : ""
       } ${hasProblem ? "border-[var(--attention-border)]" : "border-[var(--border)]"}`}
     >
@@ -138,10 +138,6 @@ export function AccountCard({
 
             {snapshot.balanceGbp !== undefined && snapshot.balanceGbp !== null && (
               <KeyValueRow label="API credits balance" value={formatGbp(snapshot.balanceGbp)} />
-            )}
-
-            {snapshot.windows?.some((w) => w.models?.length) && (
-              <ModelUsageTable windows={snapshot.windows} />
             )}
 
           </div>
@@ -292,66 +288,6 @@ function FooterMetric({
           {label}
         </span>
       </span>
-    </div>
-  );
-}
-
-function ModelUsageTable({
-  windows,
-}: {
-  windows: NonNullable<Snapshot["windows"]>;
-}) {
-  const vendorOrder: ModelVendor[] = ["gemini", "claude", "gpt", "other"];
-  const vendorDisplayNames: Record<ModelVendor, string> = {
-    gemini: "Gemini",
-    claude: "Claude",
-    gpt: "GPT",
-    other: "Other",
-  };
-  const rows = windows.flatMap((w) =>
-    (w.models ?? []).map((model) => ({
-      ...model,
-      windowLabel: w.label,
-    }))
-  );
-
-  if (rows.length === 0) return null;
-
-  const orderedRows = [...rows].sort(
-    (a, b) => vendorOrder.indexOf(a.vendor) - vendorOrder.indexOf(b.vendor)
-  );
-
-  return (
-    <div className="border-t border-[var(--border)] pt-3">
-      <div className="grid grid-cols-[1fr_auto] gap-3 border-b border-[var(--border)] pb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-faint)]">
-        <span>Model / Vendor</span>
-        <span>Usage</span>
-      </div>
-      <div className="divide-y divide-[var(--border)]">
-        {orderedRows.slice(0, 4).map((m) => {
-          const mAvail =
-            m.usedPercent === null ? null : availablePercent(m.usedPercent);
-          return (
-            <div
-              key={`${m.windowLabel}-${m.modelId}`}
-              className="grid grid-cols-[1fr_auto] items-center gap-3 py-1.5 text-xs"
-            >
-              <span className="flex min-w-0 items-center gap-2">
-                <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${vendorDot(m.vendor)}`} />
-                <span className="min-w-0 truncate">
-                  <span className="font-medium">{m.label}</span>
-                  <span className="ml-1 text-[11px] text-[var(--text-muted)]">
-                    {vendorDisplayNames[m.vendor]}
-                  </span>
-                </span>
-              </span>
-              <span className="tnum font-bold">
-                {mAvail === null ? "-" : `${roundPercent(mAvail)}%`}
-              </span>
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }
