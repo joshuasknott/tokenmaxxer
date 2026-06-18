@@ -34,10 +34,11 @@ jobs:
           - platform: linux
             os: ubuntu-22.04
             script: pnpm release:linux
-            artifact_paths: |
-              src-tauri/target/release/bundle/appimage/*.AppImage
-              src-tauri/target/release/bundle/appimage/*.AppImage.sig
-              src-tauri/target/release/bundle/deb/*.deb
+          artifact_paths: |
+            src-tauri/target/release/bundle/appimage/*.AppImage
+            src-tauri/target/release/bundle/appimage/*.AppImage.sig
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/deb/*.deb.sig
 
     steps:
       - name: Check out repository
@@ -120,8 +121,11 @@ jobs:
         with:
           path: release-artifacts
 
+      - name: Prepare stable release asset names
+        run: node scripts/prepare-release-artifacts.mjs release-artifacts release-publish
+
       - name: Generate updater manifest
-        run: node scripts/create-updater-manifest.mjs release-artifacts latest.json
+        run: node scripts/create-updater-manifest.mjs release-publish latest.json
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_REF_NAME: ${{ github.ref_name }}
@@ -130,6 +134,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            release-artifacts/**/*
+            release-publish/**/*
             latest.json
           fail_on_unmatched_files: true

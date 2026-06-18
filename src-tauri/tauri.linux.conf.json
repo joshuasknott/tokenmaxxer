@@ -5,7 +5,18 @@
       "appimage": {
         "bundleMediaFramework": false
       },
-      "deb": {}
+      "deb": {
+        "depends": [
+          "libayatana-appindicator3-1",
+          "libgtk-3-0",
+          "libsecret-1-0",
+          "libwebkit2gtk-4.1-0",
+          "librsvg2-2"
+        ],
+        "section": "utils",
+        "priority": "optional",
+        "changelog": "../CHANGELOG.md"
+      }
     }
   }
 }

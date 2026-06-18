@@ -69,6 +69,8 @@ Tauri updater artifacts must be signed. This cannot be disabled. The current
 `src-tauri/tauri.conf.json` contains the safe placeholder
 `REPLACE_WITH_TAURI_UPDATER_PUBLIC_KEY`; releases are blocked until a real
 Tauri updater keypair is generated and the public key replaces that value.
+The desktop Settings panel shows a friendly blocked-state message until that
+key is in place.
 
 Generate the keypair on a trusted machine:
 
@@ -87,13 +89,13 @@ Then:
 4. Do not commit the private key or password.
 
 When a `v*` tag is pushed, the `Release packages` workflow builds signed
-updater artifacts, uploads the `.sig` files, and generates a GitHub Releases
-compatible `latest.json`. The manifest maps:
+updater artifacts, uploads the `.sig` files, normalizes release asset names,
+and generates a Tauri-compatible `latest.json`. The manifest maps:
 
-- `windows-x86_64` to the signed NSIS installer
+- `windows-x86_64` to `TokenMaxxer-Windows-x64-setup.exe`
 - `darwin-x86_64` and `darwin-aarch64` to the same signed universal macOS
-  `.app.tar.gz`
-- `linux-x86_64` to the signed AppImage
+  `TokenMaxxer-macOS-universal.app.tar.gz`
+- `linux-x86_64` to `TokenMaxxer-Linux-x86_64.AppImage`
 
 The settings panel in the desktop app checks that manifest, downloads an
 available update, installs it, and restarts the app after installation where
@@ -102,8 +104,9 @@ the platform allows it. On Windows, Tauri exits the app during install.
 The `Release packages` GitHub Actions workflow can be started manually from
 Actions, or by pushing a `v*` tag such as `v0.1.0`. It builds Windows, macOS,
 and Linux artifacts on their native hosted runners, uploads per-platform
-workflow artifacts, and attaches them to the GitHub release when the workflow
-is triggered by a tag.
+workflow artifacts, normalizes the public file names with
+`scripts/prepare-release-artifacts.mjs`, and attaches those files to the tag
+release.
 
 The macOS workflow installs both Apple Rust targets and uses
 `universal-apple-darwin`, so the generated `.app` and `.dmg` cover Intel and
@@ -114,10 +117,23 @@ reasonable for current Debian-based desktop distributions. For local Linux
 release builds, install the same development packages listed in
 `.github/workflows/release-packages.yml` before running `pnpm release:linux`.
 
-The marketing site intentionally shows disabled download controls for platforms
-whose artifacts have not been published into `public/downloads` yet. When a new
-artifact is ready for the static site, add it under `public/downloads` and set
-the matching `href` in `src/MarketingPage.tsx`.
+The marketing site uses direct latest-download URLs for Windows, macOS, and
+Linux. It does not use GitHub Releases as the public changelog.
+
+## Changelog Automation
+
+The marketing changelog is first-party site content. `pnpm changelog:update`
+generates:
+
+- `CHANGELOG.md`
+- `public/changelog.json`
+- `src/generated/changelog.ts`
+
+The generator reads `package.json`, `v*` tags, and commit subjects, then groups
+changes into the in-site `/changelog` page. The `predev` and `prebuild` scripts
+run the generator automatically, so publishing a new tagged version refreshes
+the changelog data during the site build without linking visitors to GitHub
+Releases.
 
 ## Secure Storage Verification
 

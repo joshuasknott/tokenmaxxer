@@ -5,6 +5,9 @@ node_modules/
 dist/
 src-tauri/target/
 release-artifacts/
+release-publish/
+output/
+.playwright-cli/
 
 # Local environment and secrets
 .env

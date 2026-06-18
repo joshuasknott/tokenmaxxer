@@ -28,7 +28,7 @@ import { UsageChart } from "./components/UsageChart";
 import { Logo } from "./components/Logo";
 import { ProviderLogo } from "./components/ProviderLogo";
 import { providerStyle } from "./lib/providerStyle";
-import { MarketingPage } from "./MarketingPage";
+import { ChangelogPage, MarketingPage } from "./MarketingPage";
 
 type TauriWindow = Window & {
   __TAURI_INTERNALS__?: unknown;
@@ -36,8 +36,11 @@ type TauriWindow = Window & {
 
 export default function App() {
   const isTauri = Boolean((window as TauriWindow).__TAURI_INTERNALS__);
+  const route = window.location.pathname.replace(/\/+$/, "") || "/";
 
-  return isTauri ? <DesktopApp /> : <MarketingPage />;
+  if (isTauri) return <DesktopApp />;
+
+  return route === "/changelog" ? <ChangelogPage /> : <MarketingPage />;
 }
 
 function DesktopApp() {
@@ -411,7 +414,7 @@ function SettingsPanel({
     } catch (e) {
       setAvailableUpdate(null);
       setUpdateStatus("error");
-      setUpdateMessage(String(e));
+      setUpdateMessage(formatUpdateError(e));
     }
   };
 
@@ -445,7 +448,7 @@ function SettingsPanel({
       await relaunchApp();
     } catch (e) {
       setUpdateStatus("error");
-      setUpdateMessage(String(e));
+      setUpdateMessage(formatUpdateError(e));
     }
   };
 
@@ -522,7 +525,7 @@ function SettingsPanel({
                 </div>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">
                   {updateMessage ??
-                    "Check GitHub Releases for a signed TokenMaxxer update."}
+                    "Check the signed TokenMaxxer release channel for an update."}
                 </p>
               </div>
 
@@ -567,4 +570,14 @@ function SettingsPanel({
       </div>
     </div>
   );
+}
+
+function formatUpdateError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+
+  if (/REPLACE_WITH_TAURI|pubkey|public key|signature|signing/i.test(message)) {
+    return "Updates are waiting on a signed release key for this build.";
+  }
+
+  return `Update check failed: ${message}`;
 }

@@ -29,6 +29,8 @@
     "active": true,
     "targets": "all",
     "createUpdaterArtifacts": true,
+    "category": "DeveloperTool",
+    "licenseFile": "../LICENSE",
     "publisher": "Josh Knott",
     "homepage": "https://github.com/joshuasknott/tokenmaxxer",
     "shortDescription": "Local-first desktop usage tracker for LLM subscriptions.",
