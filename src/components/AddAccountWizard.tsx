@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import { FiAlertTriangle, FiCheck, FiCopy, FiEye, FiEyeOff, FiLoader, FiTerminal, FiX } from "react-icons/fi";
+import { FiAlertTriangle, FiCheck, FiEye, FiEyeOff, FiLoader, FiLogIn, FiX } from "react-icons/fi";
 import type { CodexProfileSession, ProviderDescriptor, ProviderKind } from "../types";
-import { addAccount, completeCodexProfile, listProviders, prepareCodexProfile } from "../lib/tauri";
+import { addAccount, completeCodexProfile, listProviders, startCodexSignIn } from "../lib/tauri";
 import { ProviderLogo } from "./ProviderLogo";
 import { providerStyle } from "../lib/providerStyle";
 
@@ -34,6 +34,36 @@ const CONFIG_JSON_PROVIDERS = new Set<ProviderKind>([
   "fireworks",
 ]);
 
+type ConnectionInfo = {
+  method: string;
+  accountCopy: string;
+  experimental?: boolean;
+};
+
+const CONNECTION_INFO: Record<ProviderKind, ConnectionInfo> = {
+  codex: {
+    method: "Guided sign-in",
+    accountCopy: "You can add as many Codex accounts as you need. Each one stays separate.",
+  },
+  antigravity: {
+    method: "Experimental connection",
+    accountCopy: "Add each account separately. This connection may occasionally need you to sign in again.",
+    experimental: true,
+  },
+  deepseek: { method: "API key", accountCopy: "Each key is kept as its own account." },
+  z_ai: { method: "API key", accountCopy: "Each key is kept as its own account." },
+  openrouter: { method: "API key", accountCopy: "Each key is kept as its own account." },
+  openai_api: { method: "Organisation access", accountCopy: "Add separate organisations or admin keys as separate accounts." },
+  anthropic_api: { method: "Organisation access", accountCopy: "Add separate organisations or admin keys as separate accounts." },
+  claude_code: { method: "Organisation access", accountCopy: "Add each team or organisation separately." },
+  cursor: { method: "Organisation access", accountCopy: "Add each team separately." },
+  contextual_ai: { method: "Organisation access", accountCopy: "Add each tenant separately." },
+  x_ai: { method: "Organisation access", accountCopy: "Add each team separately." },
+  aws_bedrock: { method: "Cloud connection", accountCopy: "Add each cloud account or resource separately." },
+  azure_openai: { method: "Cloud connection", accountCopy: "Add each Azure resource separately." },
+  fireworks: { method: "Imported usage", accountCopy: "Add each export or account separately." },
+};
+
 const instructionPanelClass =
   "rounded-lg border border-[var(--border)] bg-[var(--bg-elev-2)] p-3 text-xs leading-relaxed text-[var(--text-muted)]";
 const instructionTitleClass = "font-semibold text-[var(--text)]";
@@ -65,6 +95,9 @@ function friendlyError(raw: string): string {
     return (
       'Invalid credential format. The JSON must contain a "refresh_token" field.'
     );
+  }
+  if (/Could not open Codex sign-in/i.test(s)) {
+    return "We could not open Codex sign-in. Check that Codex is installed, then try again.";
   }
   if (/OpenAI.*(401|403|invalid credentials|insufficient permissions|api\.usage\.read)/i.test(s)) {
     return (
@@ -189,7 +222,7 @@ export function AddAccountWizard({
           <div className="min-w-0 px-5 pt-5">
             <h2 className="text-base font-bold tracking-tight">Add Account</h2>
             <p className="mt-1 text-xs text-[var(--text-muted)]">
-              Pick a provider and complete its local connection.
+              Pick a provider and set up its account.
             </p>
           </div>
           <button
@@ -228,6 +261,16 @@ export function AddAccountWizard({
                     >
                       {p.credentialDescription}
                     </span>
+                    <span className="mt-1 flex flex-wrap gap-1">
+                      <span className="rounded border border-[var(--border)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]">
+                        {CONNECTION_INFO[p.kind].method}
+                      </span>
+                      {CONNECTION_INFO[p.kind].experimental && (
+                        <span className="rounded border border-amber-500/30 px-1.5 py-0.5 text-[10px] text-amber-400">
+                          Experimental
+                        </span>
+                      )}
+                    </span>
                   </span>
                 </button>
               );
@@ -259,6 +302,7 @@ export function AddAccountWizard({
                 className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-elev-2)] px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
               />
             </div>
+            <ConnectionSummary provider={provider} />
             <CredentialInstructions
               provider={provider}
               apiKey={apiKey}
@@ -355,8 +399,8 @@ function CredentialInstructions({
     return (
       <div className="space-y-3">
         <div className={`${instructionPanelClass} space-y-1.5`}>
-          <p className={instructionTitleClass}>Experimental direct integration</p>
-          <p>Paste one authorised credential JSON object for this account. Add each account separately; provider-side expiry or revocation can still require reconnecting it.</p>
+          <p className={instructionTitleClass}>Experimental connection</p>
+          <p>Paste the connection details for this account. Add each account separately; this provider may occasionally ask you to reconnect.</p>
           <div className="mt-2 flex items-start gap-1 border-t border-[var(--border)] pt-1.5 text-[10px] leading-normal text-amber-400">
             <FiAlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>
@@ -455,6 +499,22 @@ function CredentialInstructions({
   );
 }
 
+function ConnectionSummary({ provider }: { provider: ProviderKind }) {
+  const info = CONNECTION_INFO[provider];
+  return (
+    <div className={instructionPanelClass}>
+      <p className={instructionTitleClass}>Keeping accounts separate</p>
+      <p className="mt-1">{info.accountCopy}</p>
+      {info.experimental && (
+        <p className="mt-2 flex items-start gap-1 border-t border-[var(--border)] pt-1.5 text-amber-400">
+          <FiAlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>This provider controls when a connection expires or needs to be renewed.</span>
+        </p>
+      )}
+    </div>
+  );
+}
+
 function CodexProfileSetup({
   onComplete,
 }: {
@@ -463,13 +523,12 @@ function CodexProfileSetup({
   const [session, setSession] = useState<CodexProfileSession | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);
   const [error, setError] = useState("");
-  const [copied, setCopied] = useState(false);
 
-  async function createProfile() {
+  async function startSignIn() {
     setIsPreparing(true);
     setError("");
     try {
-      setSession(await prepareCodexProfile());
+      setSession(await startCodexSignIn());
     } catch (e) {
       setError(friendlyError(String(e)));
     } finally {
@@ -477,27 +536,17 @@ function CodexProfileSetup({
     }
   }
 
-  async function copyCommand() {
-    if (!session) return;
-    try {
-      await navigator.clipboard.writeText(session.command);
-      setCopied(true);
-    } catch {
-      setError("Could not copy the command. Select and copy it from the field instead.");
-    }
-  }
-
   if (!session) {
     return (
       <div className="space-y-3">
         <div className={`${instructionPanelClass} space-y-1.5`}>
-          <p className={instructionTitleClass}>Isolated Codex profile</p>
-          <p>Create a separate local profile for this account. Its credentials stay with Codex and never replace another account.</p>
+          <p className={instructionTitleClass}>Add a Codex account</p>
+          <p>Open the normal Codex sign-in for this account. Existing Codex accounts will not be changed.</p>
         </div>
         {error && <p className="text-xs text-red-400">{error}</p>}
-        <button type="button" onClick={createProfile} disabled={isPreparing} className="btn-primary">
-          {isPreparing ? <FiLoader className="h-4 w-4 animate-spin" /> : <FiTerminal className="h-4 w-4" />}
-          Create Codex Profile
+        <button type="button" onClick={startSignIn} disabled={isPreparing} className="btn-primary">
+          {isPreparing ? <FiLoader className="h-4 w-4 animate-spin" /> : <FiLogIn className="h-4 w-4" />}
+          Open Codex Sign-in
         </button>
       </div>
     );
@@ -507,21 +556,7 @@ function CodexProfileSetup({
     <div className="space-y-3">
       <div className={`${instructionPanelClass} space-y-2`}>
         <p className={instructionTitleClass}>Sign in to this account</p>
-        <p>Run this command in a terminal, then come back once Codex has finished signing in.</p>
-        <div className="flex gap-2">
-          <code className="min-w-0 flex-1 overflow-x-auto rounded border border-[var(--border)] bg-[var(--bg-elev)] px-2 py-1.5 font-mono text-[10px] text-[var(--text)]">
-            {session.command}
-          </code>
-          <button
-            type="button"
-            onClick={copyCommand}
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded border border-[var(--border)] bg-[var(--bg-elev)] text-[var(--text-muted)] hover:text-[var(--text)]"
-            aria-label="Copy Codex login command"
-            title="Copy login command"
-          >
-            {copied ? <FiCheck className="h-4 w-4 text-emerald-500" /> : <FiCopy className="h-4 w-4" />}
-          </button>
-        </div>
+        <p>Finish signing in in the window that opened, then return here.</p>
       </div>
       {error && <p className="text-xs text-red-400">{error}</p>}
       <button type="button" onClick={() => void onComplete(session.profileId)} className="btn-primary">

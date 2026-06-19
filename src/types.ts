@@ -118,5 +118,4 @@ export interface UsageEvent {
 
 export interface CodexProfileSession {
   profileId: string;
-  command: string;
 }

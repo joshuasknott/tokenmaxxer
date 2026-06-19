@@ -40,10 +40,10 @@ enough data for a truthful snapshot.
 Every account is an independent local record, so you can add multiple API keys
 for providers such as DeepSeek and Z.ai without one replacing another.
 
-Codex accounts use **Create Codex Profile** in the app. It creates a separate
-`CODEX_HOME` and asks you to run the normal `codex login` command for that one
-account. TokenMaxxer stores only the profile reference; it never copies or
-refreshes the Codex refresh token. Reconnect only the affected profile if Codex
+On Windows, Codex accounts use **Open Codex Sign-in** in the app. It opens the
+normal Codex sign-in for that one account and keeps existing Codex accounts
+unchanged. TokenMaxxer stores only the account connection; it never copies or
+refreshes the Codex refresh token. Reconnect only the affected account if Codex
 or OpenAI invalidates its session.
 
 Antigravity remains an experimental direct integration. Add each authorised

@@ -274,22 +274,22 @@ pub mod registry {
             ProviderDescriptor {
                 kind: ProviderKind::Antigravity,
                 display_name: "Antigravity".into(),
-                credential_description: "Paste a Google OAuth refresh token JSON.".into(),
+                credential_description: "Add a separate Antigravity account (experimental).".into(),
             },
             ProviderDescriptor {
                 kind: ProviderKind::Codex,
                 display_name: "Codex".into(),
-                credential_description: "Sign in through an isolated local Codex profile.".into(),
+                credential_description: "Sign in to a separate Codex account.".into(),
             },
             ProviderDescriptor {
                 kind: ProviderKind::Deepseek,
                 display_name: "DeepSeek".into(),
-                credential_description: "Paste your DeepSeek API key.".into(),
+                credential_description: "Add a DeepSeek API key.".into(),
             },
             ProviderDescriptor {
                 kind: ProviderKind::ZAi,
                 display_name: "Z.ai".into(),
-                credential_description: "Paste your Z.ai API key.".into(),
+                credential_description: "Add a Z.ai API key.".into(),
             },
             ProviderDescriptor {
                 kind: ProviderKind::Openrouter,

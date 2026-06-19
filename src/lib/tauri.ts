@@ -54,8 +54,8 @@ export function onUsageUpdate(
 
 // ---- Isolated Codex profiles ----
 
-export const prepareCodexProfile = (): Promise<CodexProfileSession> =>
-  invoke("prepare_codex_profile");
+export const startCodexSignIn = (): Promise<CodexProfileSession> =>
+  invoke("start_codex_sign_in");
 
 export const completeCodexProfile = (
   profileId: string,
