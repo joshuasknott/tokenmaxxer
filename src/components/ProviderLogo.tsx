@@ -170,6 +170,44 @@ export function ContextualAiLogo(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function XAiLogo(props: SVGProps<SVGSVGElement>) {
+  return (
+    <BrandSvg title="xAI" {...props}>
+      <rect x="3" y="4" width="18" height="16" rx="3" fill="#111111" />
+      <path d="m7 7.5 4.1 4.5L7 16.5h2.5l2.9-3.2 2.9 3.2H18l-4.2-4.6L17.7 7.5h-2.5l-2.7 3-2.7-3H7Z" fill="#FFFFFF" />
+    </BrandSvg>
+  );
+}
+
+export function AwsBedrockLogo(props: SVGProps<SVGSVGElement>) {
+  return (
+    <BrandSvg title="Amazon Bedrock" {...props}>
+      <path d="M5 5.2 12 2l7 3.2v6.3c0 4.6-2.7 8.2-7 10.5-4.3-2.3-7-5.9-7-10.5V5.2Z" fill="#232F3E" />
+      <path d="M8 8.1 12 6l4 2.1v3.6c0 2.3-1.5 4.1-4 5.7-2.5-1.6-4-3.4-4-5.7V8.1Z" fill="#FF9900" />
+      <path d="M10 10.1h4v1.8h-4v-1.8Zm0 3h4v1.8h-4v-1.8Z" fill="#232F3E" />
+    </BrandSvg>
+  );
+}
+
+export function AzureOpenAiLogo(props: SVGProps<SVGSVGElement>) {
+  return (
+    <BrandSvg title="Azure OpenAI" {...props}>
+      <path d="M13.4 3 5.5 16.4h7.1L10.9 21 19 8.5h-7.2L13.4 3Z" fill="#0078D4" />
+      <path d="M6.2 16.4 10.3 9l2.3 7.4H6.2Z" fill="#50E6FF" />
+    </BrandSvg>
+  );
+}
+
+export function FireworksLogo(props: SVGProps<SVGSVGElement>) {
+  return (
+    <BrandSvg title="Fireworks AI" {...props}>
+      <circle cx="12" cy="12" r="10" fill="#111111" />
+      <path d="M12 4.5v5.2M12 14.3v5.2M4.5 12h5.2M14.3 12h5.2M6.7 6.7l3.7 3.7M13.6 13.6l3.7 3.7M17.3 6.7l-3.7 3.7M10.4 13.6l-3.7 3.7" stroke="#F97316" strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="12" cy="12" r="2.3" fill="#FDE047" />
+    </BrandSvg>
+  );
+}
+
 type LogoComponent = (props: {
   className?: string;
   "aria-hidden"?: boolean | "true" | "false";
@@ -186,6 +224,10 @@ const LOGOS: Record<ProviderKind, LogoComponent> = {
   claude_code: (props) => <ClaudeLogo {...props} />,
   cursor: (props) => <CursorLogo {...props} />,
   contextual_ai: (props) => <ContextualAiLogo {...props} />,
+  x_ai: (props) => <XAiLogo {...props} />,
+  aws_bedrock: (props) => <AwsBedrockLogo {...props} />,
+  azure_openai: (props) => <AzureOpenAiLogo {...props} />,
+  fireworks: (props) => <FireworksLogo {...props} />,
 };
 
 /**

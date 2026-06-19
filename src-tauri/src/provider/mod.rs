@@ -6,14 +6,18 @@
 
 pub mod anthropic_api;
 pub mod antigravity_remote;
+pub mod aws_bedrock;
+pub mod azure_openai;
 pub mod claude_code;
 pub mod codex;
 pub mod contextual_ai;
 pub mod cursor;
 pub mod deepseek;
+pub mod fireworks;
 pub mod openai_api;
 pub mod openrouter;
 pub mod reporting;
+pub mod x_ai;
 pub mod z_ai;
 
 use async_trait::async_trait;
@@ -35,6 +39,10 @@ pub enum ProviderKind {
     ClaudeCode,
     Cursor,
     ContextualAi,
+    XAi,
+    AwsBedrock,
+    AzureOpenai,
+    Fireworks,
 }
 
 impl ProviderKind {
@@ -50,6 +58,10 @@ impl ProviderKind {
             ProviderKind::ClaudeCode => "claude_code",
             ProviderKind::Cursor => "cursor",
             ProviderKind::ContextualAi => "contextual_ai",
+            ProviderKind::XAi => "x_ai",
+            ProviderKind::AwsBedrock => "aws_bedrock",
+            ProviderKind::AzureOpenai => "azure_openai",
+            ProviderKind::Fireworks => "fireworks",
         }
     }
 }
@@ -312,6 +324,29 @@ pub mod registry {
                 display_name: "Contextual AI".into(),
                 credential_description: "Paste a Contextual AI billing API key.".into(),
             },
+            ProviderDescriptor {
+                kind: ProviderKind::XAi,
+                display_name: "xAI / Grok".into(),
+                credential_description: "Paste xAI management key JSON with a team id.".into(),
+            },
+            ProviderDescriptor {
+                kind: ProviderKind::AwsBedrock,
+                display_name: "Amazon Bedrock".into(),
+                credential_description:
+                    "Paste AWS CloudWatch credentials JSON for Bedrock metrics.".into(),
+            },
+            ProviderDescriptor {
+                kind: ProviderKind::AzureOpenai,
+                display_name: "Azure OpenAI".into(),
+                credential_description: "Paste Azure Monitor bearer token JSON with resource id."
+                    .into(),
+            },
+            ProviderDescriptor {
+                kind: ProviderKind::Fireworks,
+                display_name: "Fireworks AI".into(),
+                credential_description: "Paste Fireworks metrics CSV or firectl export JSON."
+                    .into(),
+            },
         ]
     }
 
@@ -330,6 +365,10 @@ pub mod registry {
             ProviderKind::ClaudeCode => Box::new(claude_code::ClaudeCodeProvider::new()),
             ProviderKind::Cursor => Box::new(cursor::CursorProvider::new()),
             ProviderKind::ContextualAi => Box::new(contextual_ai::ContextualAiProvider::new()),
+            ProviderKind::XAi => Box::new(x_ai::XAiProvider::new()),
+            ProviderKind::AwsBedrock => Box::new(aws_bedrock::AwsBedrockProvider::new()),
+            ProviderKind::AzureOpenai => Box::new(azure_openai::AzureOpenAiProvider::new()),
+            ProviderKind::Fireworks => Box::new(fireworks::FireworksProvider::new()),
         }
     }
 
@@ -346,6 +385,10 @@ pub mod registry {
             "claude_code" => Some(ProviderKind::ClaudeCode),
             "cursor" => Some(ProviderKind::Cursor),
             "contextual_ai" => Some(ProviderKind::ContextualAi),
+            "x_ai" => Some(ProviderKind::XAi),
+            "aws_bedrock" => Some(ProviderKind::AwsBedrock),
+            "azure_openai" => Some(ProviderKind::AzureOpenai),
+            "fireworks" => Some(ProviderKind::Fireworks),
             _ => None,
         }
     }
@@ -404,6 +447,10 @@ mod tests {
             "claude_code",
             "cursor",
             "contextual_ai",
+            "x_ai",
+            "aws_bedrock",
+            "azure_openai",
+            "fireworks",
         ] {
             let kind = registry::parse_kind(kind_str).expect(kind_str);
             assert_eq!(kind.as_str(), *kind_str);

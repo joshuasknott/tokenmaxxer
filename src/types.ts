@@ -12,7 +12,11 @@ export type ProviderKind =
   | "anthropic_api"
   | "claude_code"
   | "cursor"
-  | "contextual_ai";
+  | "contextual_ai"
+  | "x_ai"
+  | "aws_bedrock"
+  | "azure_openai"
+  | "fireworks";
 
 export interface AccountConfig {
   id: string;

@@ -112,6 +112,42 @@ export function providerStyle(kind: ProviderKind): ProviderStyle {
         accentBar: "bg-fuchsia-500",
         chipBg: providerIconChip,
       };
+    case "x_ai":
+      return {
+        label: "xAI",
+        gradient: "from-zinc-800 to-zinc-500 dark:from-zinc-100 dark:to-zinc-400",
+        dot: "bg-zinc-700 dark:bg-zinc-200",
+        tagline: "Grok Management Billing",
+        accentBar: "bg-zinc-500",
+        chipBg: providerIconChip,
+      };
+    case "aws_bedrock":
+      return {
+        label: "Bedrock",
+        gradient: "from-slate-700 to-amber-600 dark:from-slate-200 dark:to-amber-200",
+        dot: "bg-amber-500",
+        tagline: "AWS Bedrock Metrics",
+        accentBar: "bg-amber-500",
+        chipBg: providerIconChip,
+      };
+    case "azure_openai":
+      return {
+        label: "Azure OpenAI",
+        gradient: "from-blue-700 to-emerald-600 dark:from-blue-200 dark:to-emerald-200",
+        dot: "bg-blue-500",
+        tagline: "Azure Monitor Tokens",
+        accentBar: "bg-blue-500",
+        chipBg: providerIconChip,
+      };
+    case "fireworks":
+      return {
+        label: "Fireworks",
+        gradient: "from-rose-600 to-yellow-500 dark:from-rose-200 dark:to-yellow-200",
+        dot: "bg-rose-500",
+        tagline: "Fireworks Billing Export",
+        accentBar: "bg-rose-500",
+        chipBg: providerIconChip,
+      };
   }
 }
 

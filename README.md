@@ -23,11 +23,16 @@ repository.
 | Claude Code | Team Claude Code usage tokens and estimated cost | Anthropic Claude Code usage report |
 | Cursor Teams | Team usage-event tokens and billed cents | Cursor Teams Admin API |
 | Contextual AI | Tenant balance and monthly billing usage | Contextual AI billing endpoints |
+| xAI / Grok | Team prepaid balance and best-effort usage totals | xAI Management API billing endpoints |
+| Amazon Bedrock | Input/output/cache token totals and throttles | CloudWatch `AWS/Bedrock` metrics via signed `GetMetricData` |
+| Azure OpenAI / AI Foundry | Prompt/generated token totals | Azure Monitor metrics for the resource id |
+| Fireworks AI | Prompt/completion token totals | Fireworks `firectl billing export-metrics` CSV |
 
 The app does not synthesize provider usage for services that lack a reliable
-official or directly verified usage, quota, or balance API. xAI/Grok, Gemini
-API-key-only, Mistral, and Together remain documented backlog candidates until
-their public API surfaces expose enough data for a truthful snapshot.
+official or directly verified usage, quota, or balance API. Gemini API-key-only,
+Mistral, Together, and personal/editor-only tools without billing endpoints
+remain documented backlog candidates until their public API surfaces expose
+enough data for a truthful snapshot.
 
 ## Prerequisites
 
@@ -233,6 +238,31 @@ is useful when a provider supports optional filters:
 OpenAI, Anthropic, Claude Code, and Cursor usage providers require organization
 or team admin/reporting credentials. Ordinary personal or inference-only keys
 usually cannot read these reports.
+
+Cloud/account providers need JSON because their billing sources require more
+than one value:
+
+```json
+{ "management_key": "xai-mgmt-...", "team_id": "team_...", "start_days_ago": 30 }
+```
+
+```json
+{ "access_key_id": "AKIA...", "secret_access_key": "...", "region": "us-east-1", "start_days_ago": 30 }
+```
+
+```json
+{ "access_token": "eyJ...", "resource_id": "/subscriptions/.../providers/Microsoft.CognitiveServices/accounts/...", "start_days_ago": 30 }
+```
+
+```json
+{ "metrics_csv_path": "C:/Users/you/Downloads/fireworks-metrics.csv" }
+```
+
+xAI requires a Management API key, not a normal Grok model key. Bedrock requires
+IAM credentials that can call CloudWatch `GetMetricData` for `AWS/Bedrock`.
+Azure requires a management-plane bearer token for the resource id. Fireworks
+can read an exported metrics CSV, or run `firectl billing export-metrics` when
+`firectl` is installed and logged in.
 
 Local non-secret data lives under the per-user app data directory:
 

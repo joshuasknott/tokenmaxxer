@@ -27,6 +27,13 @@ const ADMIN_KEY_PROVIDERS = new Set<ProviderKind>([
   "claude_code",
 ]);
 
+const CONFIG_JSON_PROVIDERS = new Set<ProviderKind>([
+  "x_ai",
+  "aws_bedrock",
+  "azure_openai",
+  "fireworks",
+]);
+
 const instructionPanelClass =
   "rounded-lg border border-[var(--border)] bg-[var(--bg-elev-2)] p-3 text-xs leading-relaxed text-[var(--text-muted)]";
 const instructionTitleClass = "font-semibold text-[var(--text)]";
@@ -79,6 +86,18 @@ function friendlyError(raw: string): string {
   }
   if (/Contextual AI.*(401|403|invalid credentials|unauthorized|forbidden)/i.test(s)) {
     return "Contextual AI rejected the request. Use a tenant billing API key with billing access.";
+  }
+  if (/xAI.*(401|403|invalid credentials|unauthorized|forbidden)|xAI expects/i.test(s)) {
+    return "xAI rejected the request. Use a Management API key JSON with the team_id; a normal Grok model API key cannot read billing.";
+  }
+  if (/AWS.*(401|403|invalid credentials|unauthorized|forbidden)|AWS .*required/i.test(s)) {
+    return "AWS rejected the request. Use IAM credentials that can call CloudWatch GetMetricData for the AWS/Bedrock namespace.";
+  }
+  if (/Azure OpenAI.*(401|403|invalid credentials|unauthorized|forbidden)|Azure OpenAI expects/i.test(s)) {
+    return "Azure rejected the request. Use an Azure management-plane bearer token and the resource_id for the Azure OpenAI or Foundry resource.";
+  }
+  if (/Fireworks.*(invalid credentials|firectl|CSV)/i.test(s)) {
+    return "Fireworks could not read billing metrics. Provide a metrics_csv_path export, or install/login to firectl and include an API key if needed.";
   }
   if (/429|rate limit/i.test(s)) {
     return "The provider rate-limited the validation request. Wait a moment, then try again.";
@@ -154,7 +173,10 @@ export function AddAccountWizard({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-3 backdrop-blur-sm sm:p-4">
-      <div className="card flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden bg-[var(--bg-elev)] shadow-2xl">
+      <div
+        className="card flex max-h-[92vh] min-w-0 max-w-2xl flex-col overflow-hidden bg-[var(--bg-elev)] shadow-2xl"
+        style={{ width: "min(100%, calc(100vw - 1.5rem))" }}
+      >
         <div className="mb-4 flex items-center justify-between">
           <div className="min-w-0 px-5 pt-5">
             <h2 className="text-base font-bold tracking-tight">Add Account</h2>
@@ -190,7 +212,7 @@ export function AddAccountWizard({
                   >
                     <ProviderLogo kind={p.kind} className="h-5 w-5" />
                   </span>
-                  <span className="min-w-0">
+                  <span className="min-w-0 flex-1">
                     <span className="block text-xs font-semibold">{p.displayName}</span>
                     <span
                       className="mt-0.5 block text-[11px] leading-relaxed text-[var(--text-muted)]"
@@ -392,6 +414,25 @@ function CredentialInstructions({
     );
   }
 
+  if (CONFIG_JSON_PROVIDERS.has(provider)) {
+    const configCopy = configProviderCopy(provider);
+    return (
+      <div className="space-y-3">
+        <div className={`${instructionPanelClass} space-y-1.5`}>
+          <p className={instructionTitleClass}>Step-by-step Setup Instructions:</p>
+          {configCopy.steps}
+        </div>
+        <textarea
+          value={apiKey}
+          onChange={(e) => onChangeApiKey(e.target.value)}
+          rows={5}
+          placeholder={configCopy.placeholder}
+          className={credentialFieldClass}
+        />
+      </div>
+    );
+  }
+
   const rawCopy = rawProviderCopy(provider);
 
   return (
@@ -537,6 +578,60 @@ function rawProviderCopy(provider: ProviderKind): {
   }
 }
 
+function configProviderCopy(provider: ProviderKind): {
+  steps: ReactNode;
+  placeholder: string;
+} {
+  switch (provider) {
+    case "x_ai":
+      return {
+        steps: (
+          <ol className="list-decimal list-inside space-y-1 pl-1">
+            <li>Create an xAI Management API key.</li>
+            <li>Copy the team id from the xAI team settings or billing URL.</li>
+            <li>Paste JSON with both values; model API keys cannot read billing.</li>
+          </ol>
+        ),
+        placeholder: '{ "management_key": "xai-mgmt-...", "team_id": "team_...", "start_days_ago": 30 }',
+      };
+    case "aws_bedrock":
+      return {
+        steps: (
+          <ol className="list-decimal list-inside space-y-1 pl-1">
+            <li>Create or choose IAM credentials with CloudWatch GetMetricData access.</li>
+            <li>Set the AWS region where Bedrock usage is reported.</li>
+            <li>The app reads token metrics from the <code className={inlineCodeClass}>AWS/Bedrock</code> namespace.</li>
+          </ol>
+        ),
+        placeholder: '{ "access_key_id": "AKIA...", "secret_access_key": "...", "region": "us-east-1", "start_days_ago": 30 }',
+      };
+    case "azure_openai":
+      return {
+        steps: (
+          <ol className="list-decimal list-inside space-y-1 pl-1">
+            <li>Get an Azure management bearer token from Azure CLI or Entra ID.</li>
+            <li>Copy the resource id for the Azure OpenAI or AI Foundry resource.</li>
+            <li>The app reads token totals from Azure Monitor metrics.</li>
+          </ol>
+        ),
+        placeholder: '{ "access_token": "eyJ...", "resource_id": "/subscriptions/.../providers/Microsoft.CognitiveServices/accounts/...", "start_days_ago": 30 }',
+      };
+    case "fireworks":
+      return {
+        steps: (
+          <ol className="list-decimal list-inside space-y-1 pl-1">
+            <li>Export Fireworks billing metrics with <code className={inlineCodeClass}>firectl billing export-metrics</code>, or install/login to firectl.</li>
+            <li>Paste a CSV path for offline import, or paste an API key and let firectl export.</li>
+            <li>The app sums prompt and completion token columns from the billing export.</li>
+          </ol>
+        ),
+        placeholder: '{ "metrics_csv_path": "C:/Users/you/Downloads/fireworks-metrics.csv" }\n\n{ "api_key": "fw_...", "firectl_path": "firectl", "start_days_ago": 30 }',
+      };
+    default:
+      return { steps: null, placeholder: "" };
+  }
+}
+
 function parseCredentials(provider: ProviderKind, key: string): unknown {
   const trimmed = key.trim();
 
@@ -558,6 +653,45 @@ function parseCredentials(provider: ProviderKind, key: string): unknown {
     const parsed = parseJsonObject(trimmed);
     if (!hasAnyStringField(parsed, ["admin_api_key", "api_key", "openai_admin_key", "anthropic_admin_key"])) {
       throw new Error('Expected JSON with an "admin_api_key" field, or paste the admin key directly.');
+    }
+    return parsed;
+  }
+
+  if (CONFIG_JSON_PROVIDERS.has(provider)) {
+    const parsed = parseJsonObject(trimmed);
+    switch (provider) {
+      case "x_ai":
+        if (
+          !hasAnyStringField(parsed, ["management_key", "api_key", "token"]) ||
+          !hasAnyStringField(parsed, ["team_id"])
+        ) {
+          throw new Error('Expected JSON with "management_key" and "team_id".');
+        }
+        break;
+      case "aws_bedrock":
+        if (
+          !hasAnyStringField(parsed, ["access_key_id", "aws_access_key_id"]) ||
+          !hasAnyStringField(parsed, ["secret_access_key", "aws_secret_access_key"])
+        ) {
+          throw new Error('Expected JSON with "access_key_id" and "secret_access_key".');
+        }
+        break;
+      case "azure_openai":
+        if (
+          !hasAnyStringField(parsed, ["access_token", "bearer_token", "azure_access_token"]) ||
+          !hasAnyStringField(parsed, ["resource_id"])
+        ) {
+          throw new Error('Expected JSON with "access_token" and "resource_id".');
+        }
+        break;
+      case "fireworks":
+        if (
+          !hasAnyStringField(parsed, ["metrics_csv_path", "csv_path"]) &&
+          !hasAnyStringField(parsed, ["api_key", "fireworks_api_key", "token"])
+        ) {
+          throw new Error('Expected JSON with "metrics_csv_path" or a Fireworks "api_key".');
+        }
+        break;
     }
     return parsed;
   }
@@ -631,5 +765,13 @@ function defaultLabel(provider: ProviderKind): string {
       return "Cursor Team Account";
     case "contextual_ai":
       return "Contextual AI Account";
+    case "x_ai":
+      return "xAI Account";
+    case "aws_bedrock":
+      return "Bedrock Account";
+    case "azure_openai":
+      return "Azure OpenAI Account";
+    case "fireworks":
+      return "Fireworks Account";
   }
 }

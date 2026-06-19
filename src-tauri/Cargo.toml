@@ -31,6 +31,12 @@ dirs = "6"
 tauri-plugin-process = "2"
 tauri-plugin-updater = "2"
 sysinfo = "0.32"
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+urlencoding = "2"
+quick-xml = { version = "0.36", features = ["serialize"] }
+csv = "1"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.61", features = [

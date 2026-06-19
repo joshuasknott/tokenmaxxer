@@ -438,6 +438,10 @@ const FIRST_RUN_PROVIDERS: ProviderKind[] = [
   "claude_code",
   "cursor",
   "contextual_ai",
+  "x_ai",
+  "aws_bedrock",
+  "azure_openai",
+  "fireworks",
 ];
 
 function EmptyState({ onAddAccount }: { onAddAccount: () => void }) {
