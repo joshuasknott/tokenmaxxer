@@ -20,6 +20,10 @@ const productAccounts: AccountConfig[] = [
   { id: "claude-code-team", label: "Claude Code team", provider: "claude_code", authRef: "vault_claude_code" },
   { id: "cursor-team", label: "Cursor engineering team", provider: "cursor", authRef: "vault_cursor" },
   { id: "contextual-tenant", label: "Contextual AI tenant", provider: "contextual_ai", authRef: "vault_contextual" },
+  { id: "xai-team", label: "xAI Grok team", provider: "x_ai", authRef: "vault_xai" },
+  { id: "bedrock-prod", label: "AWS Bedrock prod", provider: "aws_bedrock", authRef: "vault_bedrock" },
+  { id: "azure-foundry", label: "Azure Foundry resource", provider: "azure_openai", authRef: "vault_azure" },
+  { id: "fireworks-metrics", label: "Fireworks billing export", provider: "fireworks", authRef: "vault_fireworks" },
 ];
 
 const productProviders: ProviderDescriptor[] = [
@@ -72,6 +76,26 @@ const productProviders: ProviderDescriptor[] = [
     kind: "contextual_ai",
     displayName: "Contextual AI",
     credentialDescription: "Track billing balance and monthly usage.",
+  },
+  {
+    kind: "x_ai",
+    displayName: "xAI / Grok",
+    credentialDescription: "Track team billing through the Management API.",
+  },
+  {
+    kind: "aws_bedrock",
+    displayName: "Amazon Bedrock",
+    credentialDescription: "Track Bedrock token metrics from CloudWatch.",
+  },
+  {
+    kind: "azure_openai",
+    displayName: "Azure OpenAI",
+    credentialDescription: "Track token totals from Azure Monitor.",
+  },
+  {
+    kind: "fireworks",
+    displayName: "Fireworks AI",
+    credentialDescription: "Track billing metrics from firectl exports.",
   },
 ];
 
@@ -255,6 +279,71 @@ const productSnapshots: Record<string, Snapshot> = {
       tokensUsed: 2100000,
       tokenBudget: 0,
       ratePerMtuGbp: 4.41,
+    },
+    isStale: false,
+    error: null,
+  },
+  "xai-team": {
+    accountId: "xai-team",
+    timestamp: Date.now() - 138000,
+    planName: "xAI Management Billing",
+    accountDetail: "team_grok",
+    providerKind: "x_ai",
+    balanceGbp: 118.2,
+    windows: [],
+    cost: {
+      estimatedGbp: 14.62,
+      tokensUsed: 6900000,
+      tokenBudget: 0,
+      ratePerMtuGbp: 2.12,
+    },
+    isStale: false,
+    error: null,
+  },
+  "bedrock-prod": {
+    accountId: "bedrock-prod",
+    timestamp: Date.now() - 188000,
+    planName: "Bedrock CloudWatch Metrics",
+    accountDetail: "AWS us-east-1 (2 throttles)",
+    providerKind: "aws_bedrock",
+    windows: [],
+    cost: {
+      estimatedGbp: 0,
+      tokensUsed: 16400000,
+      tokenBudget: 0,
+      ratePerMtuGbp: 0,
+    },
+    isStale: false,
+    error: null,
+  },
+  "azure-foundry": {
+    accountId: "azure-foundry",
+    timestamp: Date.now() - 236000,
+    planName: "Azure Monitor Tokens",
+    accountDetail: "foundry-prod",
+    providerKind: "azure_openai",
+    windows: [],
+    cost: {
+      estimatedGbp: 0,
+      tokensUsed: 14100000,
+      tokenBudget: 0,
+      ratePerMtuGbp: 0,
+    },
+    isStale: false,
+    error: null,
+  },
+  "fireworks-metrics": {
+    accountId: "fireworks-metrics",
+    timestamp: Date.now() - 262000,
+    planName: "Fireworks Billing Export",
+    accountDetail: "fireworks-metrics.csv",
+    providerKind: "fireworks",
+    windows: [],
+    cost: {
+      estimatedGbp: 0,
+      tokensUsed: 5300000,
+      tokenBudget: 0,
+      ratePerMtuGbp: 0,
     },
     isStale: false,
     error: null,
@@ -509,7 +598,7 @@ function ProductEmptyPanel() {
           reset windows, API balances, and stale fetches from one desktop board.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          {productProviders.slice(0, 10).map((provider) => {
+          {productProviders.map((provider) => {
             const style = providerStyle(provider.kind);
             return (
               <span

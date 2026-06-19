@@ -104,7 +104,7 @@ const productStories: ProductStory[] = [
     image: ADD_ACCOUNT_SHOT_URL,
     alt: "TokenMaxxer add account flow with provider selection and credential validation.",
     align: "left",
-    points: ["Codex", "Antigravity", "DeepSeek", "Z.ai"],
+    points: ["14 providers", "Admin APIs", "Cloud metrics", "Local vault"],
   },
   {
     title: "Details when the card is not enough",
@@ -132,7 +132,7 @@ const workflowSteps: WorkflowStep[] = [
   {
     step: "03",
     title: "Pick the account with room",
-    copy: "Compare reset times, available quota, balance, spend, and token history without opening four provider dashboards.",
+    copy: "Compare reset times, available quota, balance, spend, and token history without opening a stack of provider dashboards.",
     signal: "Decision ready",
   },
 ];
@@ -145,7 +145,7 @@ const features: Feature[] = [
   },
   {
     title: "Provider adapters",
-    copy: "Codex, Antigravity, DeepSeek, and Z.ai normalize quota data into one interface.",
+    copy: "14 provider surfaces normalize quota, balance, cloud metric, and admin usage data into one interface.",
     Icon: FiCpu,
   },
   {
@@ -187,9 +187,9 @@ export function MarketingPage() {
           <div className="hero-copy">
             <h1 id="hero-title">Know which LLM account still has room.</h1>
             <p>
-              TokenMaxxer is a local desktop quota board for Codex,
-              Antigravity, DeepSeek, and Z.ai. Check reset windows, balance,
-              tokens, and estimated spend before you start the next long run.
+              TokenMaxxer is a local desktop quota board for subscriptions,
+              API keys, admin reports, and cloud AI usage. Check reset windows,
+              balance, tokens, and estimated spend before the next long run.
             </p>
             <div className="hero-actions" aria-label="Primary actions">
               <a className="hero-primary-action" href="#download">
@@ -239,7 +239,7 @@ export function MarketingPage() {
           <h2>Built around the quota decision.</h2>
           <p>
             Compare accounts, inspect reset windows, and decide where the next
-            session should run without opening four provider dashboards.
+            session should run without opening a stack of provider dashboards.
           </p>
         </div>
 
@@ -536,9 +536,9 @@ const privacySections: LegalSection[] = [
         </p>
         <ul>
           <li>
-            Credentials for Codex, Antigravity, DeepSeek, and Z.ai are stored in
-            your operating system&apos;s secure storage - Windows DPAPI, macOS
-            Keychain, or Linux Secret Service where available.
+            Provider credentials are stored in your operating system&apos;s secure
+            storage - Windows DPAPI, macOS Keychain, or Linux Secret Service
+            where available.
           </li>
           <li>
             Account labels and provider configuration live in a local{" "}
@@ -564,8 +564,9 @@ const privacySections: LegalSection[] = [
         <ul>
           <li>Credentials are sent only to the provider they belong to, over HTTPS.</li>
           <li>
-            OpenAI/ChatGPT, Google, DeepSeek, and Z.ai each have their own
-            privacy policies that apply to your use of their services.
+            OpenAI/ChatGPT, Google, Anthropic, Cursor, xAI, AWS, Azure,
+            Fireworks, and other providers each have their own privacy policies
+            that apply to your use of their services.
           </li>
           <li>
             TokenMaxxer is not affiliated with, endorsed by, or sponsored by
@@ -647,8 +648,9 @@ const termsSections: LegalSection[] = [
     body: (
       <ul>
         <li>
-          TokenMaxxer interacts with third-party APIs operated by OpenAI,
-          Google, DeepSeek, and Z.ai.
+          TokenMaxxer interacts with third-party APIs operated by the providers
+          you configure, including OpenAI, Google, Anthropic, Cursor, xAI, AWS,
+          Azure, Fireworks, and others.
         </li>
         <li>These services have their own terms of service that apply to your use.</li>
         <li>
@@ -802,8 +804,8 @@ function MarketingFooter() {
             <span>TokenMaxxer</span>
           </a>
           <p className="footer-tagline">
-            Local-first LLM quota tracking for Codex, Antigravity, DeepSeek, and
-            Z.ai.
+            Local-first LLM quota tracking across subscriptions, API keys,
+            admin reports, and cloud AI usage.
           </p>
         </div>
 
@@ -832,7 +834,7 @@ function MarketingFooter() {
       <div className="footer-base">
         <span>&copy; {year} Joshua Knott</span>
         <span className="footer-disclaimer">
-          TokenMaxxer is not affiliated with OpenAI, Google, DeepSeek, or Z.ai.
+          TokenMaxxer is not affiliated with the providers it can track.
         </span>
       </div>
     </footer>
