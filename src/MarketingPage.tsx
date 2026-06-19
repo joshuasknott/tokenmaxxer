@@ -229,7 +229,7 @@ export function MarketingPage() {
 
       <section className="signal-strip" aria-label="TokenMaxxer product signals">
         <span>Private desktop app</span>
-        <span>4 provider adapters</span>
+        <span>Multi-provider adapters</span>
         <span>Manual refresh loop</span>
         <span>Signed release channel</span>
       </section>
