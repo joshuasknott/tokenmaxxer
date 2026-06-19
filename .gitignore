@@ -13,8 +13,10 @@ output/
 .env
 .env.*
 !.env.example
+src-tauri/*.local.conf.json
 *.pem
 *.key
+*.p8
 *.p12
 *.pfx
 vault.enc

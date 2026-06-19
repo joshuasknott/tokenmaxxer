@@ -24,6 +24,9 @@ export function SummaryTiles({
   const snaps = Object.values(snapshots);
 
   const activeSnaps = snaps.filter((s) => !s.isStale && !s.error);
+  const staleCount = snaps.filter((s) => s.isStale && !s.error).length;
+  const failedCount = snaps.filter((s) => Boolean(s.error)).length;
+  const waitingCount = Math.max(0, accountCount - snaps.length);
 
   const totalCostGbp = activeSnaps.reduce(
     (sum, s) => sum + (s.cost?.estimatedGbp ?? 0),
@@ -53,6 +56,26 @@ export function SummaryTiles({
         />
         <ProviderMix items={providerMix} />
       </div>
+      {(staleCount > 0 || failedCount > 0 || waitingCount > 0) && (
+        <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] px-4 py-2 text-[11px] font-semibold text-[var(--text-muted)]">
+          <span className="text-[var(--text-faint)]">Refresh health</span>
+          {failedCount > 0 && (
+            <span className="rounded border border-red-500/20 bg-red-500/10 px-2 py-0.5 text-red-400">
+              {failedCount} failed
+            </span>
+          )}
+          {staleCount > 0 && (
+            <span className="rounded border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-amber-400">
+              {staleCount} stale
+            </span>
+          )}
+          {waitingCount > 0 && (
+            <span className="rounded border border-[var(--border)] bg-[var(--bg-elev-2)] px-2 py-0.5">
+              {waitingCount} waiting
+            </span>
+          )}
+        </div>
+      )}
     </section>
   );
 }

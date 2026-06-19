@@ -1,4 +1,4 @@
-//! tokenmaxxer — provider-agnostic desktop usage tracker.
+//! tokenmaxxer — provider-agnostic usage tracker.
 //!
 //! See src/provider/mod.rs for the provider abstraction that makes the app
 //! future-proof: new services slot in as adapters, and new accounts of an
@@ -12,12 +12,13 @@ pub mod scheduler;
 pub mod state;
 pub mod vault;
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_updater::Builder::new().build());
+
+    builder
         .setup(|app| {
             // Make sure the snapshot cache exists in managed state.
             state::AppState::ensure_cache(app.handle());

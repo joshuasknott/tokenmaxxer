@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import type { MouseEvent } from "react";
+import type { MouseEvent, TouchEvent } from "react";
 import { formatGbp, formatTokens } from "../lib/format";
 
 interface UsageEvent {
@@ -65,11 +65,31 @@ export function UsageChart({ events, period }: UsageChartProps) {
   const activePoint = hoverIndex !== null ? points[hoverIndex] : null;
   const totalCost = events.reduce((sum, e) => sum + e.costGbp, 0);
   const totalTokens = events.reduce((sum, e) => sum + e.tokensUsed, 0);
+  const hasUsage = events.length > 0 && (totalCost > 0 || totalTokens > 0);
 
   function handleMouseMove(e: MouseEvent<SVGSVGElement>) {
     if (!containerRef.current || points.length === 0) return;
+    updateHoverFromClientX(e.clientX);
+  }
+
+  function handleTouchMove(e: TouchEvent<SVGSVGElement>) {
+    if (!containerRef.current || points.length === 0) return;
+    const touch = e.touches[0];
+    if (!touch) return;
+    updateHoverFromClientX(touch.clientX);
+  }
+
+  function handleTouchStart(e: TouchEvent<SVGSVGElement>) {
+    if (!containerRef.current || points.length === 0) return;
+    const touch = e.touches[0];
+    if (!touch) return;
+    updateHoverFromClientX(touch.clientX);
+  }
+
+  function updateHoverFromClientX(clientX: number) {
+    if (!containerRef.current || points.length === 0) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const mouseX = ((e.clientX - rect.left) / rect.width) * width;
+    const mouseX = ((clientX - rect.left) / rect.width) * width;
     let closestIdx = 0;
     let closestDiff = Infinity;
 
@@ -111,7 +131,10 @@ export function UsageChart({ events, period }: UsageChartProps) {
         viewBox={`0 0 ${width} ${height}`}
         onMouseMove={handleMouseMove}
         onMouseLeave={() => setHoverIndex(null)}
-        className="cursor-crosshair overflow-visible"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={() => setHoverIndex(null)}
+        className="cursor-crosshair overflow-visible touch-none"
       >
         <defs>
           <linearGradient id="usage-trend-fill" x1="0" y1="0" x2="0" y2="1">
@@ -194,6 +217,14 @@ export function UsageChart({ events, period }: UsageChartProps) {
           />
         )}
       </svg>
+
+      {!hasUsage && (
+        <div className="pointer-events-none absolute inset-x-4 bottom-12 flex justify-center">
+          <div className="rounded-md border border-dashed border-[var(--border)] bg-[var(--bg-elev)] px-3 py-2 text-center text-xs font-medium text-[var(--text-muted)] shadow-sm">
+            No usage history recorded yet
+          </div>
+        </div>
+      )}
 
       {activePoint && (
         <div

@@ -109,6 +109,19 @@ export function ZaiLogo(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function OpenRouterLogo(props: SVGProps<SVGSVGElement>) {
+  return (
+    <BrandSvg title="OpenRouter" {...props}>
+      <circle cx="12" cy="12" r="10" fill="#111111" />
+      <path
+        d="M5.8 12.2h8.6l-2.7-2.7 1.6-1.6 5.5 5.5-5.5 5.5-1.6-1.6 2.7-2.7H5.8v-2.4Z"
+        fill="#FFFFFF"
+      />
+      <path d="M5.8 6.2h7.4v2.2H5.8V6.2Z" fill="#60A5FA" />
+    </BrandSvg>
+  );
+}
+
 export function OpenaiLogo(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 16 16" fill="#111111" xmlns="http://www.w3.org/2000/svg" {...props}>
@@ -135,6 +148,28 @@ export function OpencodeLogo(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function CursorLogo(props: SVGProps<SVGSVGElement>) {
+  return (
+    <BrandSvg title="Cursor" {...props}>
+      <path d="M3 3.5 21 12 3 20.5V14l8-2-8-2V3.5Z" fill="#111111" />
+      <path d="M6.2 8.4 14.8 12l-8.6 3.6v-2.2l3.9-1.4-3.9-1.4V8.4Z" fill="#22D3EE" />
+    </BrandSvg>
+  );
+}
+
+export function ContextualAiLogo(props: SVGProps<SVGSVGElement>) {
+  return (
+    <BrandSvg title="Contextual AI" {...props}>
+      <circle cx="12" cy="12" r="10" fill="#0F172A" />
+      <path
+        d="M15.9 7.8a5.6 5.6 0 1 0 0 8.4l-1.5-1.6a3.4 3.4 0 1 1 0-5.2l1.5-1.6Z"
+        fill="#F0FDFA"
+      />
+      <path d="M14.8 8.4h4.4v2.2h-4.4V8.4Zm0 5h4.4v2.2h-4.4v-2.2Z" fill="#D946EF" />
+    </BrandSvg>
+  );
+}
+
 type LogoComponent = (props: {
   className?: string;
   "aria-hidden"?: boolean | "true" | "false";
@@ -145,11 +180,17 @@ const LOGOS: Record<ProviderKind, LogoComponent> = {
   antigravity: (props) => <AntigravityLogo {...props} />,
   deepseek: (props) => <DeepSeekLogo {...props} />,
   z_ai: (props) => <ZaiLogo {...props} />,
+  openrouter: (props) => <OpenRouterLogo {...props} />,
+  openai_api: (props) => <OpenaiLogo {...props} />,
+  anthropic_api: (props) => <ClaudeLogo {...props} />,
+  claude_code: (props) => <ClaudeLogo {...props} />,
+  cursor: (props) => <CursorLogo {...props} />,
+  contextual_ai: (props) => <ContextualAiLogo {...props} />,
 };
 
 /**
- * Render the real brand logo for a provider kind. Logo glyphs keep their
- * intrinsic brand colors; className should only control layout and size.
+ * Render provider brand artwork. Logo glyphs keep their intrinsic colors;
+ * className should only control layout and size.
  */
 export function ProviderLogo({
   kind,

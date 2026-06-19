@@ -1,0 +1,13 @@
+{
+  "1.0.0": {
+    "summary": "The first public release of TokenMaxxer.",
+    "notes": [
+      "Track usage across Codex, Antigravity, DeepSeek, and Z.ai accounts in one place",
+      "See remaining quota, reset windows, and account balances at a glance",
+      "View estimated spend and token history per account",
+      "Drill into any account for model-level breakdowns",
+      "Credentials stay in your operating system's secure storage — nothing leaves your device",
+      "Signed downloads for Windows, macOS, and Linux"
+    ]
+  }
+}

@@ -6,7 +6,13 @@ export type ProviderKind =
   | "codex"
   | "antigravity"
   | "deepseek"
-  | "z_ai";
+  | "z_ai"
+  | "openrouter"
+  | "openai_api"
+  | "anthropic_api"
+  | "claude_code"
+  | "cursor"
+  | "contextual_ai";
 
 export interface AccountConfig {
   id: string;

@@ -2,7 +2,11 @@
   "bundle": {
     "targets": ["app", "dmg"],
     "macOS": {
+      "entitlements": "Entitlements.plist",
+      "hardenedRuntime": true,
       "minimumSystemVersion": "10.13",
+      "providerShortName": null,
+      "signingIdentity": null,
       "dmg": {
         "windowSize": {
           "width": 660,

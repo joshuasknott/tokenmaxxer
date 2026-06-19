@@ -1,5 +1,6 @@
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { updaterPlatforms } from "./release-assets.mjs";
 
 const [artifactRoot = "release-artifacts", outputPath = "latest.json"] =
   process.argv.slice(2);
@@ -34,38 +35,37 @@ async function walk(dir) {
 
 const files = await walk(artifactRoot);
 const packageJson = JSON.parse(await readFile("package.json", "utf8"));
+const filesByName = new Map(files.map((file) => [path.basename(file), file]));
 const platforms = {};
 
-function assetUrl(filePath) {
-  const fileName = path.basename(filePath);
+function assetUrl(fileName) {
   return `https://github.com/${repo}/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(fileName)}`;
 }
 
-async function addPlatform(platform, assetPath) {
-  if (!assetPath) return;
+function requireReleaseAsset(fileName) {
+  const filePath = filesByName.get(fileName);
 
-  const signaturePath = `${assetPath}.sig`;
-  if (!files.includes(signaturePath)) {
-    throw new Error(`Missing updater signature for ${path.basename(assetPath)}.`);
+  if (!filePath) {
+    throw new Error(
+      `Missing stable release asset ${fileName}. Run scripts/prepare-release-artifacts.mjs before generating latest.json.`
+    );
   }
+
+  return filePath;
+}
+
+async function addPlatform({ platform, asset }) {
+  const assetPath = requireReleaseAsset(asset);
+  const signaturePath = requireReleaseAsset(`${asset}.sig`);
 
   platforms[platform] = {
     signature: (await readFile(signaturePath, "utf8")).trim(),
-    url: assetUrl(assetPath),
+    url: assetUrl(path.basename(assetPath)),
   };
 }
 
-const windowsInstaller = files.find((file) => /\.exe$/i.test(file));
-const macArchive = files.find((file) => /\.app\.tar\.gz$/i.test(file));
-const linuxAppImage = files.find((file) => /\.AppImage$/.test(file));
-
-await addPlatform("windows-x86_64", windowsInstaller);
-await addPlatform("darwin-x86_64", macArchive);
-await addPlatform("darwin-aarch64", macArchive);
-await addPlatform("linux-x86_64", linuxAppImage);
-
-if (Object.keys(platforms).length === 0) {
-  throw new Error("No updater artifacts were found.");
+for (const updaterPlatform of updaterPlatforms) {
+  await addPlatform(updaterPlatform);
 }
 
 await writeFile(

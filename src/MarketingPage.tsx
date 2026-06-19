@@ -1,12 +1,16 @@
+import { useState, type ReactNode } from "react";
 import type { IconType } from "react-icons";
 import { FaApple, FaGithub, FaLinux, FaWindows } from "react-icons/fa";
 import {
   FiActivity,
+  FiArrowRight,
   FiBarChart2,
   FiClock,
+  FiCpu,
   FiDatabase,
+  FiHardDrive,
   FiKey,
-  FiMonitor,
+  FiLock,
   FiRefreshCw,
   FiShield,
 } from "react-icons/fi";
@@ -15,24 +19,22 @@ import { LogoMark } from "./components/Logo";
 import changelog from "./generated/changelog";
 
 const SOURCE_URL = "https://github.com/joshuasknott/tokenmaxxer";
-const DOWNLOAD_BASE_URL = `${SOURCE_URL}/releases/latest/download`;
+const LATEST_DOWNLOAD_URL = `${SOURCE_URL}/releases/latest/download`;
 const CHANGELOG_URL = "/changelog";
+const PRIVACY_URL = "/privacy";
+const TERMS_URL = "/terms";
 const PRODUCT_SHOT_URL = "/tokenmaxxer-product-shot.png";
 const PRODUCT_DEMO_URL = "/tokenmaxxer-demo.mp4";
 const ADD_ACCOUNT_SHOT_URL = "/tokenmaxxer-add-account-shot.png";
 const ACCOUNT_DETAILS_SHOT_URL = "/tokenmaxxer-account-details-shot.png";
+const releaseAssetUrl = (assetName: string) =>
+  `${LATEST_DOWNLOAD_URL}/${assetName}`;
 
 type PlatformOption = {
   platform: string;
   artifact: string;
   copy: string;
   href: string;
-  Icon: IconType;
-};
-
-type UseCase = {
-  title: string;
-  copy: string;
   Icon: IconType;
 };
 
@@ -51,77 +53,87 @@ type Feature = {
   Icon: IconType;
 };
 
+type WorkflowStep = {
+  step: string;
+  title: string;
+  copy: string;
+  signal: string;
+};
+
+type LegalSection = {
+  heading: string;
+  body: ReactNode;
+};
+
 const platformOptions: PlatformOption[] = [
   {
     platform: "Windows",
     artifact: "NSIS installer",
     copy: "Download for Windows",
-    href: `${DOWNLOAD_BASE_URL}/TokenMaxxer-Windows-x64-setup.exe`,
+    href: releaseAssetUrl("TokenMaxxer-Windows-x64-setup.exe"),
     Icon: FaWindows,
   },
   {
     platform: "macOS",
     artifact: "Universal DMG",
     copy: "Download for macOS",
-    href: `${DOWNLOAD_BASE_URL}/TokenMaxxer-macOS-universal.dmg`,
+    href: releaseAssetUrl("TokenMaxxer-macOS-universal.dmg"),
     Icon: FaApple,
   },
   {
     platform: "Linux",
     artifact: "AppImage",
     copy: "Download for Linux",
-    href: `${DOWNLOAD_BASE_URL}/TokenMaxxer-Linux-x86_64.AppImage`,
+    href: releaseAssetUrl("TokenMaxxer-Linux-x86_64.AppImage"),
     Icon: FaLinux,
-  },
-];
-
-const useCases: UseCase[] = [
-  {
-    title: "Scan the board",
-    copy: "Open TokenMaxxer before a long run and see which account has room.",
-    Icon: FiActivity,
-  },
-  {
-    title: "Add a provider",
-    copy: "Choose Codex, Antigravity, DeepSeek, or Z.ai and validate credentials first.",
-    Icon: FiKey,
-  },
-  {
-    title: "Inspect the reset",
-    copy: "Open the account details view when a quota window needs explanation.",
-    Icon: FiClock,
-  },
-  {
-    title: "Keep history local",
-    copy: "Track cost, tokens, balances, and reset windows without a hosted account.",
-    Icon: FiDatabase,
   },
 ];
 
 const productStories: ProductStory[] = [
   {
-    title: "A quota board before you choose a model",
-    copy: "The dashboard keeps provider limits, reset windows, balances, estimated spend, and token history in one local view.",
+    title: "A real quota board before the next run",
+    copy: "Provider limits, reset countdowns, balances, estimated spend, and token history stay visible in one local dashboard.",
     image: PRODUCT_SHOT_URL,
     alt: "TokenMaxxer dashboard showing provider cards, quota reset windows, provider mix, and global usage trend.",
     align: "right",
     points: ["Provider mix", "Reset countdowns", "Usage trend", "Local history"],
   },
   {
-    title: "Credential setup with the context beside the choice",
-    copy: "Each provider shows the exact credential shape it expects, then validates before the account enters local storage.",
+    title: "Account setup that validates before saving",
+    copy: "Choose the provider, paste the credential shape it expects, and keep it in the operating system vault.",
     image: ADD_ACCOUNT_SHOT_URL,
     alt: "TokenMaxxer add account flow with provider selection and credential validation.",
     align: "left",
     points: ["Codex", "Antigravity", "DeepSeek", "Z.ai"],
   },
   {
-    title: "A detail view for the moment the card is not enough",
-    copy: "Drill into model breakdowns, reset timestamps, balance context, and the usage trend behind a single tracked account.",
+    title: "Details when the card is not enough",
+    copy: "Open any account for model breakdowns, reset timestamps, balance context, and the usage history behind a decision.",
     image: ACCOUNT_DETAILS_SHOT_URL,
     alt: "TokenMaxxer account detail modal showing quota windows, model breakdown, and historical usage chart.",
     align: "right",
     points: ["Model breakdowns", "Reset timestamps", "Historical usage"],
+  },
+];
+
+const workflowSteps: WorkflowStep[] = [
+  {
+    step: "01",
+    title: "Add provider credentials",
+    copy: "TokenMaxxer checks the provider response before an account enters your local board.",
+    signal: "Validated locally",
+  },
+  {
+    step: "02",
+    title: "Refresh the board",
+    copy: "Pull the latest quota windows for one account or the full list when a session is about to start.",
+    signal: "Manual control",
+  },
+  {
+    step: "03",
+    title: "Pick the account with room",
+    copy: "Compare reset times, available quota, balance, spend, and token history without opening four provider dashboards.",
+    signal: "Decision ready",
   },
 ];
 
@@ -132,14 +144,14 @@ const features: Feature[] = [
     Icon: FiShield,
   },
   {
-    title: "Manual refresh controls",
-    copy: "Refresh one account or the full board and see new snapshots immediately.",
-    Icon: FiRefreshCw,
+    title: "Provider adapters",
+    copy: "Codex, Antigravity, DeepSeek, and Z.ai normalize quota data into one interface.",
+    Icon: FiCpu,
   },
   {
-    title: "Signed release channel",
-    copy: "Windows, macOS, and Linux packages are prepared with stable download names.",
-    Icon: TbDownload,
+    title: "Refresh controls",
+    copy: "Refresh one account or the full board and see new snapshots immediately.",
+    Icon: FiRefreshCw,
   },
   {
     title: "Trend context",
@@ -147,101 +159,165 @@ const features: Feature[] = [
     Icon: FiBarChart2,
   },
   {
-    title: "Provider adapters",
-    copy: "Codex, Antigravity, DeepSeek, and Z.ai share one normalized UI model.",
-    Icon: FiMonitor,
+    title: "Local history",
+    copy: "Spend, tokens, balances, and resets stay on your machine.",
+    Icon: FiDatabase,
   },
   {
-    title: "Credential validation",
-    copy: "The add-account flow checks provider credentials before saving them.",
-    Icon: FiKey,
+    title: "Signed releases",
+    copy: "Windows, macOS, and Linux builds use stable GitHub release asset names.",
+    Icon: TbDownload,
   },
 ];
 
-const heroSteps = ["Scan quotas", "Add an account", "Open details"];
+const securityRows = [
+  ["Credentials", "Stored in OS secure storage where available."],
+  ["Configuration", "Account labels and provider settings live in local config."],
+  ["History", "Usage events and cost estimates stay in local history files."],
+  ["Updates", "Signed release checks happen through GitHub and Tauri."],
+];
 
 export function MarketingPage() {
-  const latestEntry = changelog.entries[0];
-
   return (
     <main className="marketing-page">
       <SiteNav />
 
-      <section className="marketing-hero" aria-labelledby="marketing-title">
-        <div className="hero-stage">
-          <div className="hero-copy-overlay">
-            <h1 id="marketing-title">TokenMaxxer</h1>
-            <p>Watch the local quota workflow: scan accounts, add a provider, and inspect reset details.</p>
+      <section className="marketing-hero" aria-labelledby="hero-title">
+        <div className="hero-shell">
+          <div className="hero-copy">
+            <h1 id="hero-title">Know which LLM account still has room.</h1>
+            <p>
+              TokenMaxxer is a local desktop quota board for Codex,
+              Antigravity, DeepSeek, and Z.ai. Check reset windows, balance,
+              tokens, and estimated spend before you start the next long run.
+            </p>
+            <div className="hero-actions" aria-label="Primary actions">
+              <a className="hero-primary-action" href="#download">
+                <TbDownload aria-hidden="true" />
+                Download
+              </a>
+              <a
+                className="hero-secondary-action"
+                href={SOURCE_URL}
+                rel="noreferrer"
+                target="_blank"
+              >
+                <FaGithub aria-hidden="true" />
+                View source
+                <TbExternalLink aria-hidden="true" />
+              </a>
+            </div>
+            <div className="hero-proof-grid" aria-label="Product guarantees">
+              <span>
+                <FiLock aria-hidden="true" />
+                No hosted account
+              </span>
+              <span>
+                <FiHardDrive aria-hidden="true" />
+                Local history
+              </span>
+              <span>
+                <FiClock aria-hidden="true" />
+                Reset windows
+              </span>
+            </div>
           </div>
 
-          <figure className="hero-product-frame" aria-label="TokenMaxxer walkthrough video">
-            <video
-              aria-label="TokenMaxxer demo showing the quota board, add account flow, and account details"
-              autoPlay
-              loop
-              muted
-              playsInline
-              poster={PRODUCT_SHOT_URL}
-              preload="metadata"
-              src={PRODUCT_DEMO_URL}
-            />
-            <figcaption className="hero-step-strip">
-              {heroSteps.map((step, index) => (
-                <span key={step}>
-                  <strong>{index + 1}</strong>
-                  {step}
-                </span>
-              ))}
-            </figcaption>
-          </figure>
+          <HeroProductVideo />
         </div>
       </section>
 
-      <section className="marketing-section ways-section">
+      <section className="signal-strip" aria-label="TokenMaxxer product signals">
+        <span>Private desktop app</span>
+        <span>4 provider adapters</span>
+        <span>Manual refresh loop</span>
+        <span>Signed release channel</span>
+      </section>
+
+      <section id="product" className="marketing-section product-overview">
         <div className="section-heading">
-          <h2>Use it before the next long run</h2>
+          <h2>Built around the quota decision.</h2>
           <p>
-            TokenMaxxer is built for the moment before you commit to a model,
-            account, or overnight job.
+            Compare accounts, inspect reset windows, and decide where the next
+            session should run without opening four provider dashboards.
           </p>
         </div>
 
-        <div className="ways-grid">
-          {useCases.map((item) => (
-            <article className="way-card" key={item.title}>
-              <item.Icon aria-hidden="true" />
-              <h3>{item.title}</h3>
-              <p>{item.copy}</p>
+        <div className="product-story-stack" aria-label="TokenMaxxer product walkthrough">
+          {productStories.map((story) => (
+            <article className={`product-story product-story-${story.align}`} key={story.title}>
+              <div className="product-story-copy">
+                <h3>{story.title}</h3>
+                <p>{story.copy}</p>
+                <ul>
+                  {story.points.map((point) => (
+                    <li key={point}>{point}</li>
+                  ))}
+                </ul>
+              </div>
+              <figure className="product-story-media">
+                <img alt={story.alt} src={story.image} />
+              </figure>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="product-story-stack" aria-label="TokenMaxxer product walkthrough">
-        {productStories.map((story) => (
-          <article className={`product-story product-story-${story.align}`} key={story.title}>
-            <div className="product-story-copy">
-              <h2>{story.title}</h2>
-              <p>{story.copy}</p>
-              <ul>
-                {story.points.map((point) => (
-                  <li key={point}>{point}</li>
-                ))}
-              </ul>
-            </div>
-            <figure className="product-story-media">
-              <img alt={story.alt} src={story.image} />
-            </figure>
-          </article>
-        ))}
+      <section id="workflow" className="marketing-section workflow-section">
+        <div className="section-heading">
+          <h2>A short loop, not another dashboard habit.</h2>
+          <p>
+            Add the accounts once, refresh when you need the truth, then pick
+            the provider with the least friction for the work ahead.
+          </p>
+        </div>
+
+        <div className="workflow-rail">
+          {workflowSteps.map((item) => (
+            <article className="workflow-step" key={item.step}>
+              <span className="workflow-index">{item.step}</span>
+              <div>
+                <strong>{item.signal}</strong>
+                <h3>{item.title}</h3>
+                <p>{item.copy}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section id="security" className="marketing-section security-section">
+        <div className="security-layout">
+          <div className="security-copy">
+            <h2>Local-first by default.</h2>
+            <p>
+              TokenMaxxer reads provider quota APIs from your machine. It has no
+              hosted account, analytics pipeline, or cloud dashboard to sign in
+              to.
+            </p>
+            <a href={PRIVACY_URL}>
+              Read privacy details
+              <FiArrowRight aria-hidden="true" />
+            </a>
+          </div>
+
+          <div className="security-table" role="table" aria-label="Local-first data model">
+            {securityRows.map(([label, value]) => (
+              <div role="row" key={label}>
+                <span role="cell">{label}</span>
+                <strong role="cell">{value}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section className="marketing-section features-section">
         <div className="section-heading">
-          <h2>The full quota loop</h2>
+          <h2>Details that make it feel engineered.</h2>
           <p>
-            Secure credential storage, provider refreshes, usage history, and
-            package updates stay part of one desktop workflow.
+            The interface is built for repeated use: clear state, predictable
+            controls, local storage, and release assets that are easy to find.
           </p>
         </div>
 
@@ -260,38 +336,68 @@ export function MarketingPage() {
         </div>
       </section>
 
-      <section className="marketing-section release-section">
-        <div className="release-panel">
-          <div>
-            <h2>Changelog that belongs to the site</h2>
-            <p>
-              The changelog page is generated from repository history during
-              local and production builds. The latest entry is {latestEntry.title}.
-            </p>
-          </div>
-
-          <div className="release-actions">
-            <a className="text-action" href={CHANGELOG_URL}>
-              Changelog
-            </a>
-          </div>
-
-          <div className="release-channel-list" aria-label="TokenMaxxer platform downloads">
-            {platformOptions.map((option) => (
-              <a className="release-channel" href={option.href} key={option.platform}>
-                <option.Icon aria-hidden="true" />
-                <span>
-                  <strong>{option.copy}</strong>
-                  <small>{option.artifact}</small>
-                </span>
-              </a>
-            ))}
-          </div>
-        </div>
-      </section>
+      <DownloadSection />
 
       <MarketingFooter />
     </main>
+  );
+}
+
+function HeroProductVideo() {
+  const [videoFailed, setVideoFailed] = useState(false);
+
+  return (
+    <figure className="hero-product-video" aria-label="TokenMaxxer product video preview">
+      <div className="demo-window-bar">
+        <span aria-hidden="true" />
+        <span aria-hidden="true" />
+        <span aria-hidden="true" />
+        <strong>TokenMaxxer / Quota Board</strong>
+      </div>
+
+      <div className="hero-video-stage">
+        {videoFailed ? (
+          <img
+            alt="TokenMaxxer dashboard showing provider cards, reset windows, and global usage trend."
+            src={PRODUCT_SHOT_URL}
+          />
+        ) : (
+          <video
+            aria-label="TokenMaxxer demo video showing the quota board, add account flow, and account details."
+            autoPlay
+            muted
+            onError={() => setVideoFailed(true)}
+            onLoadedMetadata={(event) => {
+              event.currentTarget.currentTime = 3.1;
+            }}
+            onTimeUpdate={(event) => {
+              if (event.currentTarget.currentTime > 11.7) {
+                event.currentTarget.currentTime = 3.1;
+                void event.currentTarget.play();
+              }
+            }}
+            playsInline
+            poster={PRODUCT_SHOT_URL}
+            preload="auto"
+            src={PRODUCT_DEMO_URL}
+          />
+        )}
+        <div className="hero-video-footer">
+          <span>
+            <FiActivity aria-hidden="true" />
+            Live quota board
+          </span>
+          <span>
+            <FiKey aria-hidden="true" />
+            Add account flow
+          </span>
+          <span>
+            <FiBarChart2 aria-hidden="true" />
+            Usage details
+          </span>
+        </div>
+      </div>
+    </figure>
   );
 }
 
@@ -300,17 +406,25 @@ export function ChangelogPage() {
     <main className="marketing-page changelog-page">
       <SiteNav />
 
-      <section className="changelog-hero marketing-section">
+      <section className="page-hero marketing-section">
         <div className="section-heading">
           <h1>Changelog</h1>
-          <p>
-            Generated during builds from TokenMaxxer version tags and commit
-            history, then served as a first-party page.
-          </p>
+          <p>Release notes for the desktop quota board.</p>
         </div>
       </section>
 
       <section className="changelog-list" aria-label="TokenMaxxer changelog entries">
+        {changelog.entries.length === 0 ? (
+          <article className="changelog-entry">
+            <div className="changelog-entry-head">
+              <div>
+                <h2>No public releases yet</h2>
+                <p>Release notes will appear here after TokenMaxxer v1.0.0 is tagged.</p>
+              </div>
+            </div>
+          </article>
+        ) : null}
+
         {changelog.entries.map((entry) => (
           <article className="changelog-entry" key={`${entry.version}-${entry.date}`}>
             <div className="changelog-entry-head">
@@ -321,18 +435,11 @@ export function ChangelogPage() {
               {entry.date && <time dateTime={entry.date}>{entry.date}</time>}
             </div>
 
-            <div className="changelog-groups">
-              {entry.groups.map((group) => (
-                <section key={group.category}>
-                  <h3>{group.category}</h3>
-                  <ul>
-                    {group.items.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                </section>
+            <ul className="changelog-notes">
+              {entry.notes.map((note) => (
+                <li key={note}>{note}</li>
               ))}
-            </div>
+            </ul>
           </article>
         ))}
       </section>
@@ -342,19 +449,316 @@ export function ChangelogPage() {
   );
 }
 
+export function PrivacyPage() {
+  return (
+    <LegalPage
+      title="Privacy Policy"
+      updated="Last updated June 18, 2026"
+      sections={privacySections}
+    />
+  );
+}
+
+export function TermsPage() {
+  return (
+    <LegalPage
+      title="Terms of Service"
+      updated="Last updated June 18, 2026"
+      sections={termsSections}
+    />
+  );
+}
+
+function LegalPage({
+  title,
+  updated,
+  sections,
+}: {
+  title: string;
+  updated: string;
+  sections: LegalSection[];
+}) {
+  return (
+    <main className="marketing-page legal-page">
+      <SiteNav />
+
+      <section className="page-hero marketing-section">
+        <div className="section-heading">
+          <h1>{title}</h1>
+          <p>{updated}</p>
+        </div>
+      </section>
+
+      <section className="legal-body" aria-label={`${title} contents`}>
+        {sections.map((section) => (
+          <article className="legal-section" key={section.heading}>
+            <h2>{section.heading}</h2>
+            <div className="legal-prose">{section.body}</div>
+          </article>
+        ))}
+      </section>
+
+      <MarketingFooter />
+    </main>
+  );
+}
+
+const privacySections: LegalSection[] = [
+  {
+    heading: "Summary",
+    body: (
+      <p>
+        TokenMaxxer is a local-first desktop application. It does not require an
+        account, does not send your data to TokenMaxxer or its developers, and
+        includes no analytics or telemetry. These notes explain exactly what the
+        app stores and what it contacts on your behalf.
+      </p>
+    ),
+  },
+  {
+    heading: "Data we do not collect",
+    body: (
+      <ul>
+        <li>No account is required to use TokenMaxxer.</li>
+        <li>No personal information is transmitted to TokenMaxxer or its developers.</li>
+        <li>The app contains no analytics, telemetry, or crash reporting.</li>
+        <li>The source code is open under the MIT License, so this can be verified directly.</li>
+      </ul>
+    ),
+  },
+  {
+    heading: "Information stored on your device",
+    body: (
+      <>
+        <p>
+          Provider credentials, configuration, and usage history stay on your
+          machine:
+        </p>
+        <ul>
+          <li>
+            Credentials for Codex, Antigravity, DeepSeek, and Z.ai are stored in
+            your operating system&apos;s secure storage - Windows DPAPI, macOS
+            Keychain, or Linux Secret Service where available.
+          </li>
+          <li>
+            Account labels and provider configuration live in a local{" "}
+            <code>config.json</code> file.
+          </li>
+          <li>
+            Usage history (tokens, spend, balances, reset windows) lives in a
+            local <code>history.json</code> file.
+          </li>
+          <li>This data does not leave your device through TokenMaxxer.</li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    heading: "Third-party providers",
+    body: (
+      <>
+        <p>
+          TokenMaxxer contacts provider APIs directly from your device to read
+          quota and usage information:
+        </p>
+        <ul>
+          <li>Credentials are sent only to the provider they belong to, over HTTPS.</li>
+          <li>
+            OpenAI/ChatGPT, Google, DeepSeek, and Z.ai each have their own
+            privacy policies that apply to your use of their services.
+          </li>
+          <li>
+            TokenMaxxer is not affiliated with, endorsed by, or sponsored by
+            these providers.
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    heading: "Software updates",
+    body: (
+      <ul>
+        <li>The app checks GitHub for signed updates using the Tauri updater plugin.</li>
+        <li>This check reveals your IP address to GitHub. No TokenMaxxer-specific identifier is sent.</li>
+        <li>Updates are cryptographically signed and verified before installation.</li>
+      </ul>
+    ),
+  },
+  {
+    heading: "Contact",
+    body: (
+      <p>
+        To ask a privacy question or request a change, open an issue on{" "}
+        <a href={SOURCE_URL} rel="noreferrer" target="_blank">
+          GitHub
+        </a>
+        .
+      </p>
+    ),
+  },
+];
+
+const termsSections: LegalSection[] = [
+  {
+    heading: "Acceptance",
+    body: (
+      <p>
+        By downloading or using TokenMaxxer, you agree to these terms. If you do
+        not agree, do not use the software.
+      </p>
+    ),
+  },
+  {
+    heading: "License",
+    body: (
+      <p>
+        TokenMaxxer is released under the{" "}
+        <a
+          href={`${SOURCE_URL}/blob/main/LICENSE`}
+          rel="noreferrer"
+          target="_blank"
+        >
+          MIT License
+        </a>
+        . You may use, copy, modify, merge, publish, and distribute the software
+        subject to the terms of that license.
+      </p>
+    ),
+  },
+  {
+    heading: "Your responsibilities",
+    body: (
+      <ul>
+        <li>You are responsible for keeping your provider credentials secure.</li>
+        <li>
+          You must comply with the terms of service of each provider whose APIs
+          TokenMaxxer contacts on your behalf.
+        </li>
+        <li>
+          You are responsible for your use of those provider APIs, including any
+          costs or rate limits they impose.
+        </li>
+      </ul>
+    ),
+  },
+  {
+    heading: "Third-party services",
+    body: (
+      <ul>
+        <li>
+          TokenMaxxer interacts with third-party APIs operated by OpenAI,
+          Google, DeepSeek, and Z.ai.
+        </li>
+        <li>These services have their own terms of service that apply to your use.</li>
+        <li>
+          TokenMaxxer is not affiliated with these providers. They may change,
+          rate-limit, or revoke API access at any time.
+        </li>
+      </ul>
+    ),
+  },
+  {
+    heading: "No warranty",
+    body: (
+      <p>
+        The software is provided &quot;as is&quot;, without warranty of any
+        kind, express or implied, including but not limited to the warranties of
+        merchantability, fitness for a particular purpose, and non-infringement.
+      </p>
+    ),
+  },
+  {
+    heading: "Limitation of liability",
+    body: (
+      <p>
+        To the maximum extent permitted by law, neither the author nor
+        contributors shall be liable for any claim, damages, or other liability
+        arising from the use of or inability to use the software.
+      </p>
+    ),
+  },
+  {
+    heading: "Changes",
+    body: (
+      <p>
+        These terms may be updated from time to time. Continued use of
+        TokenMaxxer after a change constitutes acceptance of the revised terms.
+      </p>
+    ),
+  },
+  {
+    heading: "Contact",
+    body: (
+      <p>
+        To ask a question about these terms, open an issue on{" "}
+        <a href={SOURCE_URL} rel="noreferrer" target="_blank">
+          GitHub
+        </a>
+        .
+      </p>
+    ),
+  },
+];
+
+function DownloadSection() {
+  return (
+    <section id="download" className="marketing-section download-section">
+      <div className="download-panel">
+        <div className="download-panel-copy">
+          <h2>Download the desktop build.</h2>
+          <p>
+            Pick the release asset for your OS. TokenMaxxer runs locally, stores
+            credentials locally, and points every package link at the stable
+            GitHub release channel.
+          </p>
+        </div>
+
+        <div className="download-cards" aria-label="TokenMaxxer platform downloads">
+          {platformOptions.map((option) => (
+            <a className="download-card" href={option.href} key={option.platform}>
+              <span className="download-card-icon">
+                <option.Icon aria-hidden="true" />
+              </span>
+              <span className="download-card-copy">
+                <strong>{option.copy}</strong>
+                <small>{option.artifact}</small>
+              </span>
+              <span className="download-card-action" aria-hidden="true">
+                <TbDownload />
+              </span>
+            </a>
+          ))}
+        </div>
+
+        <p className="download-footnote">
+          Want the source instead? Review the MIT-licensed project on{" "}
+          <a href={SOURCE_URL} rel="noreferrer" target="_blank">
+            GitHub
+          </a>
+          .
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function SiteNav() {
   return (
     <header className="marketing-nav">
-      <a className="nav-brand" href={SOURCE_URL} rel="noreferrer" target="_blank" aria-label="TokenMaxxer GitHub source">
+      <a className="nav-brand" href="/" aria-label="TokenMaxxer home">
         <LogoMark className="nav-logo-mark" />
         <span>TokenMaxxer</span>
       </a>
 
-      <nav aria-label="Marketing links">
+      <nav className="nav-links" aria-label="Marketing links">
+        <a href="/#product">Product</a>
+        <a href="/#workflow">Workflow</a>
+        <a href="/#security">Security</a>
         <a href={CHANGELOG_URL}>Changelog</a>
         <a href={SOURCE_URL} rel="noreferrer" target="_blank">
           <FaGithub aria-hidden="true" />
-          GitHub Source
+          GitHub
           <TbExternalLink aria-hidden="true" />
         </a>
       </nav>
@@ -377,7 +781,7 @@ function DownloadMenu() {
           <a href={option.href} key={option.platform}>
             <option.Icon aria-hidden="true" />
             <span>
-              <strong>{option.copy}</strong>
+              <strong>{option.platform}</strong>
               <small>{option.artifact}</small>
             </span>
           </a>
@@ -388,24 +792,49 @@ function DownloadMenu() {
 }
 
 function MarketingFooter() {
+  const year = new Date().getFullYear();
   return (
     <footer className="marketing-footer">
-      <div className="footer-brand">
-        <LogoMark className="footer-logo-mark" />
-        <span>TokenMaxxer</span>
+      <div className="footer-grid">
+        <div className="footer-brand-col">
+          <a className="footer-brand" href="/" aria-label="TokenMaxxer home">
+            <LogoMark className="footer-logo-mark" />
+            <span>TokenMaxxer</span>
+          </a>
+          <p className="footer-tagline">
+            Local-first LLM quota tracking for Codex, Antigravity, DeepSeek, and
+            Z.ai.
+          </p>
+        </div>
+
+        <nav className="footer-col" aria-label="Product">
+          <h3>Product</h3>
+          <a href="/#product">Product UI</a>
+          <a href="/#workflow">Workflow</a>
+          <a href="/#download">Download</a>
+          <a href={CHANGELOG_URL}>Changelog</a>
+        </nav>
+
+        <nav className="footer-col" aria-label="Legal">
+          <h3>Legal</h3>
+          <a href={PRIVACY_URL}>Privacy Policy</a>
+          <a href={TERMS_URL}>Terms of Service</a>
+          <a
+            href={`${SOURCE_URL}/blob/main/LICENSE`}
+            rel="noreferrer"
+            target="_blank"
+          >
+            MIT License
+          </a>
+        </nav>
       </div>
 
-      <nav aria-label="Footer links">
-        <a href={CHANGELOG_URL}>Changelog</a>
-        <a href={SOURCE_URL} rel="noreferrer" target="_blank">
-          GitHub Source
-        </a>
-        {platformOptions.map((option) => (
-          <a href={option.href} key={option.platform}>
-            {option.copy}
-          </a>
-        ))}
-      </nav>
+      <div className="footer-base">
+        <span>&copy; {year} Joshua Knott</span>
+        <span className="footer-disclaimer">
+          TokenMaxxer is not affiliated with OpenAI, Google, DeepSeek, or Z.ai.
+        </span>
+      </div>
     </footer>
   );
 }

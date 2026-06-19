@@ -1,11 +1,19 @@
 //! Provider abstraction.
 //!
-//! Every service we track (Codex, Antigravity, DeepSeek, Z.ai)
+//! Every service we track (Codex, Antigravity, DeepSeek, Z.ai, and
+//! developer AI billing APIs)
 //! implements [`Provider`]. The UI only ever sees the normalized [`Snapshot`].
 
+pub mod anthropic_api;
 pub mod antigravity_remote;
+pub mod claude_code;
 pub mod codex;
+pub mod contextual_ai;
+pub mod cursor;
 pub mod deepseek;
+pub mod openai_api;
+pub mod openrouter;
+pub mod reporting;
 pub mod z_ai;
 
 use async_trait::async_trait;
@@ -21,6 +29,12 @@ pub enum ProviderKind {
     Antigravity,
     Deepseek,
     ZAi,
+    Openrouter,
+    OpenaiApi,
+    AnthropicApi,
+    ClaudeCode,
+    Cursor,
+    ContextualAi,
 }
 
 impl ProviderKind {
@@ -30,6 +44,12 @@ impl ProviderKind {
             ProviderKind::Antigravity => "antigravity",
             ProviderKind::Deepseek => "deepseek",
             ProviderKind::ZAi => "z_ai",
+            ProviderKind::Openrouter => "openrouter",
+            ProviderKind::OpenaiApi => "openai_api",
+            ProviderKind::AnthropicApi => "anthropic_api",
+            ProviderKind::ClaudeCode => "claude_code",
+            ProviderKind::Cursor => "cursor",
+            ProviderKind::ContextualAi => "contextual_ai",
         }
     }
 }
@@ -261,6 +281,37 @@ pub mod registry {
                 display_name: "Z.ai".into(),
                 credential_description: "Paste your Z.ai API key.".into(),
             },
+            ProviderDescriptor {
+                kind: ProviderKind::Openrouter,
+                display_name: "OpenRouter".into(),
+                credential_description: "Paste an OpenRouter API or management key.".into(),
+            },
+            ProviderDescriptor {
+                kind: ProviderKind::OpenaiApi,
+                display_name: "OpenAI API".into(),
+                credential_description: "Paste an OpenAI Admin API key JSON.".into(),
+            },
+            ProviderDescriptor {
+                kind: ProviderKind::AnthropicApi,
+                display_name: "Anthropic API".into(),
+                credential_description: "Paste an Anthropic Admin API key JSON.".into(),
+            },
+            ProviderDescriptor {
+                kind: ProviderKind::ClaudeCode,
+                display_name: "Claude Code".into(),
+                credential_description: "Paste an Anthropic admin key for Claude Code analytics."
+                    .into(),
+            },
+            ProviderDescriptor {
+                kind: ProviderKind::Cursor,
+                display_name: "Cursor Teams".into(),
+                credential_description: "Paste a Cursor team Admin API key.".into(),
+            },
+            ProviderDescriptor {
+                kind: ProviderKind::ContextualAi,
+                display_name: "Contextual AI".into(),
+                credential_description: "Paste a Contextual AI billing API key.".into(),
+            },
         ]
     }
 
@@ -273,6 +324,12 @@ pub mod registry {
             }
             ProviderKind::Deepseek => Box::new(deepseek::DeepSeekProvider::new()),
             ProviderKind::ZAi => Box::new(z_ai::ZAiProvider::new()),
+            ProviderKind::Openrouter => Box::new(openrouter::OpenRouterProvider::new()),
+            ProviderKind::OpenaiApi => Box::new(openai_api::OpenAiApiProvider::new()),
+            ProviderKind::AnthropicApi => Box::new(anthropic_api::AnthropicApiProvider::new()),
+            ProviderKind::ClaudeCode => Box::new(claude_code::ClaudeCodeProvider::new()),
+            ProviderKind::Cursor => Box::new(cursor::CursorProvider::new()),
+            ProviderKind::ContextualAi => Box::new(contextual_ai::ContextualAiProvider::new()),
         }
     }
 
@@ -283,6 +340,12 @@ pub mod registry {
             "antigravity" => Some(ProviderKind::Antigravity),
             "deepseek" => Some(ProviderKind::Deepseek),
             "z_ai" => Some(ProviderKind::ZAi),
+            "openrouter" => Some(ProviderKind::Openrouter),
+            "openai_api" => Some(ProviderKind::OpenaiApi),
+            "anthropic_api" => Some(ProviderKind::AnthropicApi),
+            "claude_code" => Some(ProviderKind::ClaudeCode),
+            "cursor" => Some(ProviderKind::Cursor),
+            "contextual_ai" => Some(ProviderKind::ContextualAi),
             _ => None,
         }
     }
@@ -330,7 +393,18 @@ mod tests {
 
     #[test]
     fn provider_kind_round_trips_through_registry() {
-        for kind_str in &["codex", "antigravity", "deepseek", "z_ai"] {
+        for kind_str in &[
+            "codex",
+            "antigravity",
+            "deepseek",
+            "z_ai",
+            "openrouter",
+            "openai_api",
+            "anthropic_api",
+            "claude_code",
+            "cursor",
+            "contextual_ai",
+        ] {
             let kind = registry::parse_kind(kind_str).expect(kind_str);
             assert_eq!(kind.as_str(), *kind_str);
         }

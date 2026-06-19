@@ -1,7 +1,7 @@
 {
   "name": "tokenmaxxer",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "Provider-agnostic desktop usage tracker for LLM subscriptions (Codex, Gemini/Antigravity, ...).",
   "license": "MIT",
@@ -12,6 +12,9 @@
     "prebuild": "node scripts/generate-changelog.mjs",
     "preview": "vite preview",
     "tauri": "tauri",
+    "package:windows": "tauri build --bundles nsis --ci --no-sign --config src-tauri/tauri.dev.conf.json",
+    "package:macos": "tauri build --target universal-apple-darwin --bundles app,dmg --ci --no-sign --config src-tauri/tauri.dev.conf.json",
+    "package:linux": "tauri build --bundles appimage,deb --ci --no-sign --config src-tauri/tauri.dev.conf.json",
     "release:windows": "tauri build --bundles nsis --ci",
     "release:macos": "tauri build --target universal-apple-darwin --bundles app,dmg --ci",
     "release:linux": "tauri build --bundles appimage,deb --ci",

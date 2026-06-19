@@ -1,5 +1,6 @@
 import { copyFile, mkdir, readdir, rm, stat } from "node:fs/promises";
 import path from "node:path";
+import { releaseAssets } from "./release-assets.mjs";
 
 const [sourceRoot = "release-artifacts", outputRoot = "release-publish"] =
   process.argv.slice(2);
@@ -59,28 +60,28 @@ const files = await walk(sourceRoot);
 
 await copyArtifact(
   findFile(files, /\.exe$/i, "Windows installer"),
-  "TokenMaxxer-Windows-x64-setup.exe",
+  releaseAssets.windowsInstaller,
   { requireSignature: true }
 );
 
 await copyArtifact(
   findFile(files, /\.dmg$/i, "macOS DMG"),
-  "TokenMaxxer-macOS-universal.dmg"
+  releaseAssets.macosDmg
 );
 
 await copyArtifact(
   findFile(files, /\.app\.tar\.gz$/i, "macOS updater archive"),
-  "TokenMaxxer-macOS-universal.app.tar.gz",
+  releaseAssets.macosUpdaterArchive,
   { requireSignature: true }
 );
 
 await copyArtifact(
   findFile(files, /\.AppImage$/i, "Linux AppImage"),
-  "TokenMaxxer-Linux-x86_64.AppImage",
+  releaseAssets.linuxAppImage,
   { requireSignature: true }
 );
 
 await copyArtifact(
   findFile(files, /\.deb$/i, "Linux deb package"),
-  "TokenMaxxer-Linux-x86_64.deb"
+  releaseAssets.linuxDeb
 );

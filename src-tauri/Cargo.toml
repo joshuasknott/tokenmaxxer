@@ -1,8 +1,8 @@
 [package]
 name = "tokenmaxxer"
-version = "0.1.0"
+version = "1.0.0"
 description = "Provider-agnostic desktop usage tracker for LLM subscriptions"
-authors = ["Josh"]
+authors = ["Josh Knott"]
 license = "MIT"
 edition = "2021"
 rust-version = "1.77.2"
@@ -10,7 +10,7 @@ default-run = "tokenmaxxer"
 
 [lib]
 name = "tokenmaxxer_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
+crate-type = ["rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -27,10 +27,10 @@ uuid = { version = "1", features = ["v4"] }
 thiserror = "2"
 async-trait = "0.1"
 log = "0.4"
-sysinfo = "0.32"
 dirs = "6"
-tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
+tauri-plugin-updater = "2"
+sysinfo = "0.32"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.61", features = [

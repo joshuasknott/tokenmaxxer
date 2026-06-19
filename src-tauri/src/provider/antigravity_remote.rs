@@ -480,9 +480,9 @@ mod tests {
 
         let mut models = BTreeMap::new();
         models.insert(
-            "gemini-1.5-pro".to_string(),
+            "gemini-3.1-pro-preview".to_string(),
             RemoteModel {
-                display_name: Some("Gemini 1.5 Pro".to_string()),
+                display_name: Some("Gemini 3.1 Pro".to_string()),
                 quota_info: Some(RemoteQuotaInfo {
                     remaining_fraction: Some(0.6),
                     reset_time: Some("2026-06-17T12:00:00Z".to_string()),
@@ -490,9 +490,9 @@ mod tests {
             },
         );
         models.insert(
-            "claude-3-5-sonnet".to_string(),
+            "claude-sonnet-4-6".to_string(),
             RemoteModel {
-                display_name: Some("Claude 3.5 Sonnet".to_string()),
+                display_name: Some("Claude Sonnet 4.6".to_string()),
                 quota_info: Some(RemoteQuotaInfo {
                     remaining_fraction: Some(0.4),
                     reset_time: Some("2026-06-17T13:00:00Z".to_string()),
@@ -500,9 +500,9 @@ mod tests {
             },
         );
         models.insert(
-            "gpt-4o".to_string(),
+            "gpt-5.5".to_string(),
             RemoteModel {
-                display_name: Some("GPT-4o".to_string()),
+                display_name: Some("GPT-5.5".to_string()),
                 quota_info: Some(RemoteQuotaInfo {
                     remaining_fraction: Some(0.7),
                     reset_time: Some("2026-06-17T14:00:00Z".to_string()),
@@ -521,16 +521,16 @@ mod tests {
         assert_eq!(w5.label, "5-hour window");
         assert!((w5.used_percent - 60.0).abs() < 0.001);
         assert_eq!(w5.models.len(), 1);
-        assert_eq!(w5.models[0].model_id, "gemini-1.5-pro");
+        assert_eq!(w5.models[0].model_id, "gemini-3.1-pro-preview");
         assert_eq!(w5.models[0].vendor, super::super::ModelVendor::Gemini);
 
         let ww = &snapshot.windows[1];
         assert_eq!(ww.label, "Weekly window");
         assert!((ww.used_percent - 60.0).abs() < 0.001);
         assert_eq!(ww.models.len(), 2);
-        assert_eq!(ww.models[0].model_id, "claude-3-5-sonnet");
+        assert_eq!(ww.models[0].model_id, "claude-sonnet-4-6");
         assert_eq!(ww.models[0].vendor, super::super::ModelVendor::Claude);
-        assert_eq!(ww.models[1].model_id, "gpt-4o");
+        assert_eq!(ww.models[1].model_id, "gpt-5.5");
         assert_eq!(ww.models[1].vendor, super::super::ModelVendor::Gpt);
     }
 }

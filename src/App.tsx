@@ -28,33 +28,54 @@ import { UsageChart } from "./components/UsageChart";
 import { Logo } from "./components/Logo";
 import { ProviderLogo } from "./components/ProviderLogo";
 import { providerStyle } from "./lib/providerStyle";
-import { ChangelogPage, MarketingPage } from "./MarketingPage";
+import { ChangelogPage, MarketingPage, PrivacyPage, TermsPage } from "./MarketingPage";
+import {
+  ProductAccountDetailsState,
+  ProductAddAccountState,
+  ProductDashboardState,
+  ProductEmptyState,
+  ProductSettingsState,
+  ProductStateMatrix,
+} from "./ProductDemoState";
 
 type TauriWindow = Window & {
   __TAURI_INTERNALS__?: unknown;
 };
 
+type ThemeMode = "system" | "light" | "dark";
+type ResolvedTheme = "light" | "dark";
+
 export default function App() {
   const isTauri = Boolean((window as TauriWindow).__TAURI_INTERNALS__);
   const route = window.location.pathname.replace(/\/+$/, "") || "/";
 
-  if (isTauri) return <DesktopApp />;
+  if (isTauri) return <TauriApp />;
 
-  return route === "/changelog" ? <ChangelogPage /> : <MarketingPage />;
+  if (route === "/demo/desktop") return <ProductDashboardState />;
+  if (route === "/demo/empty") return <ProductEmptyState />;
+  if (route === "/demo/add-account") return <ProductAddAccountState />;
+  if (route === "/demo/account-details") return <ProductAccountDetailsState />;
+  if (route === "/demo/settings") return <ProductSettingsState />;
+  if (route === "/demo/states") return <ProductStateMatrix />;
+  if (route === "/changelog") return <ChangelogPage />;
+  if (route === "/privacy") return <PrivacyPage />;
+  if (route === "/terms") return <TermsPage />;
+  return <MarketingPage />;
 }
 
-function DesktopApp() {
+function TauriApp() {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [snapshots, setSnapshots] = useState<Record<string, Snapshot>>({});
   const [showWizard, setShowWizard] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [refreshingAll, setRefreshingAll] = useState(false);
-  const [themeMode, setThemeMode] = useState<"light" | "dark">(() => {
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     const saved = localStorage.getItem("tokenmaxxer-theme-mode");
-    if (saved === "light" || saved === "dark") return saved;
-    return "dark";
+    if (saved === "system" || saved === "light" || saved === "dark") return saved;
+    return "system";
   });
   
   // Analytics State
@@ -62,9 +83,20 @@ function DesktopApp() {
   const [historyEvents, setHistoryEvents] = useState<UsageEvent[]>([]);
 
   useEffect(() => {
-    document.documentElement.dataset.theme = themeMode;
-    document.documentElement.style.colorScheme = themeMode;
+    const applyTheme = () => {
+      const resolved = resolveTheme(themeMode);
+      document.documentElement.dataset.theme = resolved;
+      document.documentElement.style.colorScheme = resolved;
+    };
+
+    applyTheme();
     localStorage.setItem("tokenmaxxer-theme-mode", themeMode);
+
+    if (themeMode !== "system") return;
+
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    media.addEventListener("change", applyTheme);
+    return () => media.removeEventListener("change", applyTheme);
   }, [themeMode]);
 
   useEffect(() => {
@@ -82,6 +114,8 @@ function DesktopApp() {
         });
       } catch (e) {
         setLoadError(String(e));
+      } finally {
+        setInitialLoadComplete(true);
       }
     })();
     return () => {
@@ -155,31 +189,91 @@ function DesktopApp() {
 
   if (loadError) {
     return (
-      <div className="flex h-full items-center justify-center p-8 bg-zinc-50 dark:bg-zinc-950">
-        <div className="text-center">
-          <p className="mb-2 font-semibold text-red-500">Couldn't start TokenMaxxer</p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            {loadError}
-          </p>
+      <div className="flex h-full items-center justify-center bg-[var(--bg)] p-6 text-[var(--text)]">
+        <div className="w-full max-w-xl rounded-lg border border-[var(--attention-border)] bg-[var(--bg-elev)] p-5 shadow-lg">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10 text-red-400">
+              <FiAlertCircle className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="font-semibold text-red-400">Couldn't start TokenMaxxer</p>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">
+                The desktop bridge returned an error while loading local config or cached usage.
+              </p>
+              <pre className="mt-3 max-h-36 overflow-auto rounded-md border border-[var(--border)] bg-[var(--bg-elev-2)] p-3 text-left text-[11px] leading-relaxed text-[var(--text-muted)]">
+                {loadError}
+              </pre>
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="btn-primary mt-4 inline-flex items-center gap-2"
+              >
+                <FiRefreshCw className="h-4 w-4" />
+                Reload
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
-  const accounts = config?.accounts ?? [];
+  if (!initialLoadComplete || !config) {
+    return (
+      <div className="flex min-h-full bg-[var(--bg)] text-[var(--text)]">
+        <main className="min-w-0 flex-1">
+          <div className="mx-auto max-w-[1280px] px-3 py-4 sm:px-5 lg:px-6">
+            <header className="flex flex-col gap-4 border-b border-[var(--border)] pb-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <Logo size="md" />
+                <div className="mt-4 h-6 w-40 animate-pulse rounded bg-[var(--bg-elev-2)]" />
+                <div className="mt-2 h-4 w-72 max-w-full animate-pulse rounded bg-[var(--bg-elev-2)]" />
+              </div>
+              <div className="flex gap-2">
+                <div className="h-9 w-28 animate-pulse rounded-md bg-[var(--bg-elev-2)]" />
+                <div className="h-9 w-28 animate-pulse rounded-md bg-[var(--bg-elev-2)]" />
+              </div>
+            </header>
+            <div className="space-y-4 pt-4">
+              <div className="grid gap-3 lg:grid-cols-4">
+                {[0, 1, 2, 3].map((i) => (
+                  <div key={i} className="h-24 animate-pulse rounded-lg border border-[var(--border)] bg-[var(--bg-elev)]" />
+                ))}
+              </div>
+              <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="h-56 animate-pulse rounded-lg border border-[var(--border)] bg-[var(--bg-elev)]" />
+                ))}
+              </div>
+              <p className="text-xs font-medium text-[var(--text-muted)]">
+                Loading local account configuration and cached usage snapshots...
+              </p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  const accounts = config.accounts;
 
   return (
     <div className="tokenmaxxer-app flex min-h-full bg-[var(--bg)] text-[var(--text)]">
       <main className="min-w-0 flex-1">
-        <div className="mx-auto max-w-[1280px] px-4 py-5 sm:px-6 lg:px-8">
-          <header className="flex flex-col gap-4 border-b border-[var(--border)] pb-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
+        <div className="mx-auto max-w-[1280px] px-3 py-4 sm:px-5 lg:px-6">
+          <header className="flex flex-col gap-3 border-b border-[var(--border)] pb-4 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0">
               <Logo size="md" />
-              <h1 className="mt-3 text-xl font-bold tracking-tight lg:mt-0">
-                Quota Board
-              </h1>
-              <p className="mt-1 text-sm text-[var(--text-muted)]">
-                Live usage ledger for tracked local AI provider accounts.
+              <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1 lg:mt-0">
+                <h1 className="text-xl font-bold tracking-tight">
+                  Quota Board
+                </h1>
+                <span className="pill">
+                  {accounts.length} {accounts.length === 1 ? "account" : "accounts"}
+                </span>
+              </div>
+              <p className="mt-1 max-w-2xl text-sm text-[var(--text-muted)]">
+                Dense local usage ledger for AI provider quotas, spend, balances, and reset windows.
               </p>
             </div>
 
@@ -203,7 +297,7 @@ function DesktopApp() {
           </header>
 
           {accounts.length > 0 ? (
-            <div className="space-y-5 pt-5">
+            <div className="space-y-4 pt-4">
               <SummaryTiles
                 snapshots={snapshots}
                 accountCount={accounts.length}
@@ -215,12 +309,9 @@ function DesktopApp() {
                   <div>
                     <h2 className="text-sm font-bold tracking-tight">
                       Tracked Accounts
-                      <span className="ml-1 font-medium text-[var(--text-muted)]">
-                        ({accounts.length})
-                      </span>
                     </h2>
                     <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-                      Provider quotas, reset windows, and local refresh controls.
+                      Provider quotas, reset windows, refresh health, and local account controls.
                     </p>
                   </div>
                   <div className="flex rounded-lg border border-[var(--border)] bg-[var(--bg-elev-2)] p-0.5">
@@ -240,7 +331,7 @@ function DesktopApp() {
                   </div>
                 </div>
 
-                <div className="grid gap-3 xl:grid-cols-3">
+                <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
                   {accounts.map((account) => (
                     <AccountCard
                       key={account.id}
@@ -259,20 +350,25 @@ function DesktopApp() {
               </section>
 
               <section className="space-y-3">
-                <div>
-                  <h2 className="text-sm font-bold tracking-tight">
-                    Global Usage Trend
-                  </h2>
-                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-                    Estimated cost by period with token volume context.
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <h2 className="text-sm font-bold tracking-tight">
+                      Global Usage Trend
+                    </h2>
+                    <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                      Estimated cost by period with token volume context.
+                    </p>
+                  </div>
+                  <p className="text-[11px] font-medium text-[var(--text-faint)]">
+                    Stale and failed snapshots are excluded from totals.
                   </p>
                 </div>
                 <UsageChart events={historyEvents} period={period} />
               </section>
             </div>
           ) : (
-            <div className="pt-5">
-              <EmptyState />
+            <div className="pt-4">
+              <EmptyState onAddAccount={() => setShowWizard(true)} />
             </div>
           )}
         </div>
@@ -296,7 +392,7 @@ function DesktopApp() {
       <button
         type="button"
         onClick={() => setShowSettings(true)}
-        className="fixed bottom-5 right-5 z-40 flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-elev)] text-[var(--text-muted)] shadow-lg transition hover:border-[var(--border-strong)] hover:text-[var(--text)]"
+        className="fixed bottom-4 right-4 z-40 flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-elev)] text-[var(--text-muted)] shadow-lg transition hover:border-[var(--border-strong)] hover:text-[var(--text)]"
         title="Settings"
         aria-label="Settings"
       >
@@ -326,30 +422,38 @@ function DesktopApp() {
   );
 }
 
+function resolveTheme(mode: ThemeMode): ResolvedTheme {
+  if (mode === "light" || mode === "dark") return mode;
+  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+}
+
 const FIRST_RUN_PROVIDERS: ProviderKind[] = [
   "codex",
   "antigravity",
   "deepseek",
   "z_ai",
+  "openrouter",
+  "openai_api",
+  "anthropic_api",
+  "claude_code",
+  "cursor",
+  "contextual_ai",
 ];
 
-function EmptyState() {
+function EmptyState({ onAddAccount }: { onAddAccount: () => void }) {
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-elev)]">
-      <div className="px-8 py-14 text-center">
+    <div className="rounded-lg border border-dashed border-[var(--border-strong)] bg-[var(--bg-elev)]">
+      <div className="px-5 py-10 text-center sm:px-8">
         <h3 className="mx-auto max-w-md text-lg font-extrabold tracking-tight">
           Start your local quota ledger
         </h3>
-        <p
-          className="mx-auto mt-2 max-w-sm text-xs"
-          style={{ color: "var(--text-muted)" }}
-        >
-          Add your Codex, Antigravity, DeepSeek or Z.ai credentials to
-          monitor token usage, cost, reset windows, and account balances.
+        <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[var(--text-muted)]">
+          Add local or developer AI credentials to monitor token usage, spend,
+          reset windows, API balances, and stale fetches from one desktop board.
         </p>
 
         {/* Provider icon row - real brand artwork */}
-        <div className="mt-8 flex items-center justify-center gap-3">
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           {FIRST_RUN_PROVIDERS.map((kind) => {
             const style = providerStyle(kind);
             return (
@@ -364,9 +468,19 @@ function EmptyState() {
           })}
         </div>
 
-        <p className="mt-8 text-xs font-medium text-[var(--text-muted)]">
-          Use the Add Account button in the header to connect your first provider.
-        </p>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+          <button
+            type="button"
+            onClick={onAddAccount}
+            className="btn-primary inline-flex items-center gap-2"
+          >
+            <FiPlus className="h-4 w-4" />
+            Add Account
+          </button>
+          <span className="text-xs font-medium text-[var(--text-muted)]">
+            Credentials stay in the local desktop vault.
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -377,8 +491,8 @@ function SettingsPanel({
   onThemeChange,
   onClose,
 }: {
-  themeMode: "light" | "dark";
-  onThemeChange: (mode: "light" | "dark") => void;
+  themeMode: ThemeMode;
+  onThemeChange: (mode: ThemeMode) => void;
   onClose: () => void;
 }) {
   const [updateStatus, setUpdateStatus] = useState<
@@ -467,7 +581,7 @@ function SettingsPanel({
           <div>
             <h2 className="text-base font-bold">Settings</h2>
             <p className="mt-1 text-xs text-[var(--text-muted)]">
-              Display preferences for this desktop.
+              Display and updater controls for this desktop.
             </p>
           </div>
           <button
@@ -482,8 +596,8 @@ function SettingsPanel({
           <div className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--text-faint)]">
             Theme
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            {(["light", "dark"] as const).map((mode) => (
+          <div className="grid grid-cols-3 gap-2">
+            {(["system", "light", "dark"] as const).map((mode) => (
               <button
                 key={mode}
                 onClick={() => onThemeChange(mode)}
@@ -494,12 +608,14 @@ function SettingsPanel({
                 }`}
               >
                 <span className="block text-sm font-bold capitalize">
-                  {mode === "light" ? "Light" : "Dark"}
+                  {mode}
                 </span>
                 <span className="mt-1 block text-xs text-[var(--text-muted)]">
-                  {mode === "light"
-                    ? "Bright operations board"
-                    : "Low-light operations board"}
+                  {mode === "system"
+                    ? "Follow OS"
+                    : mode === "light"
+                      ? "Bright board"
+                      : "Low-light board"}
                 </span>
               </button>
             ))}

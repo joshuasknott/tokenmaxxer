@@ -41,11 +41,13 @@ export function AccountCard({
   const style = providerStyle(account.provider);
   const stale = snapshot?.isStale ?? false;
   const hasProblem = Boolean(snapshot?.error || stale);
+  const hasWindows = Boolean(snapshot?.windows?.length);
+  const balanceGbp = snapshot?.balanceGbp ?? null;
 
   return (
     <article
       onClick={onClick}
-      className={`group relative flex min-h-[220px] flex-col overflow-hidden rounded-lg border bg-[var(--bg-elev)] transition ${
+      className={`group relative flex min-h-[218px] flex-col overflow-hidden rounded-lg border bg-[var(--bg-elev)] transition ${
         onClick ? "cursor-pointer hover:border-[var(--border-strong)] hover:shadow-sm" : ""
       } ${hasProblem ? "border-[var(--attention-border)]" : "border-[var(--border)]"}`}
     >
@@ -60,11 +62,11 @@ export function AccountCard({
               <ProviderLogo kind={account.provider} className="h-5 w-5" />
             </span>
             <div className="min-w-0">
-              <div className="flex min-w-0 items-center gap-2">
-                <span className="truncate text-sm font-bold">
+              <div className="min-w-0">
+                <span className="block truncate text-sm font-bold">
                   {style.label}
                 </span>
-                <span className="truncate text-xs font-medium text-[var(--text-muted)]">
+                <span className="mt-0.5 block truncate text-xs font-medium text-[var(--text-muted)]">
                   {snapshot?.planName ?? style.tagline}
                 </span>
               </div>
@@ -87,7 +89,12 @@ export function AccountCard({
             >
               <FiRefreshCw className="h-4 w-4" />
             </button>
-            <button type="button" className="icon-button" title="Open details">
+            <button
+              type="button"
+              className="icon-button"
+              title="Open details"
+              aria-label="Open account details"
+            >
               <FiMoreHorizontal className="h-4 w-4" />
             </button>
           </div>
@@ -123,12 +130,20 @@ export function AccountCard({
         )}
 
         {!snapshot ? (
-          <div className="mt-6 rounded-md border border-dashed border-[var(--border)] px-3 py-8 text-center text-xs font-medium text-[var(--text-muted)]">
-            Waiting for first local sync
+          <div className="mt-4 rounded-md border border-dashed border-[var(--border)] bg-[var(--bg-elev-2)] px-3 py-7 text-center">
+            <div className="mx-auto h-1.5 w-24 overflow-hidden rounded-full bg-[var(--track)]">
+              <div className="h-full w-1/2 animate-pulse rounded-full bg-[var(--text-faint)]" />
+            </div>
+            <p className="mt-3 text-xs font-semibold text-[var(--text-muted)]">
+              Waiting for first local sync
+            </p>
+            <p className="mt-1 text-[11px] text-[var(--text-faint)]">
+              Refresh to validate credentials and hydrate usage.
+            </p>
           </div>
         ) : (
           <div className="mt-4 space-y-4">
-            {snapshot.windows && snapshot.windows.length > 0 && (
+            {hasWindows && (
               <QuotaWindowsSummary
                 windows={snapshot.windows}
                 stale={stale}
@@ -136,8 +151,16 @@ export function AccountCard({
               />
             )}
 
-            {snapshot.balanceGbp !== undefined && snapshot.balanceGbp !== null && (
-              <KeyValueRow label="API credits balance" value={formatGbp(snapshot.balanceGbp)} />
+            {!hasWindows && (
+              <CostOnlySummary
+                tokens={formatTokens(snapshot.cost.tokensUsed)}
+                cost={formatGbp(snapshot.cost.estimatedGbp)}
+                stale={stale}
+              />
+            )}
+
+            {balanceGbp !== null && (
+              <KeyValueRow label="API credits balance" value={formatGbp(balanceGbp)} />
             )}
 
           </div>
@@ -163,6 +186,7 @@ export function AccountCard({
           }}
           className="icon-button mx-2"
           title={`Last sync: ${snapshot ? formatAgo(snapshot.timestamp) : "waiting"}`}
+          aria-label={`Last sync: ${snapshot ? formatAgo(snapshot.timestamp) : "waiting"}`}
         >
           <FiBarChart2 className="h-4 w-4" />
         </button>
@@ -181,6 +205,38 @@ export function AccountCard({
         </button>
       </div>
     </article>
+  );
+}
+
+function CostOnlySummary({
+  tokens,
+  cost,
+  stale,
+}: {
+  tokens: string;
+  cost: string;
+  stale: boolean;
+}) {
+  return (
+    <div className={`rounded-md border border-[var(--border)] bg-[var(--bg-elev-2)] p-3 ${stale ? "opacity-75" : ""}`}>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <div className="text-[11px] font-semibold text-[var(--text-muted)]">
+            Period spend
+          </div>
+          <div className="tnum mt-1 text-xl font-extrabold">{cost}</div>
+        </div>
+        <div>
+          <div className="text-[11px] font-semibold text-[var(--text-muted)]">
+            Tokens
+          </div>
+          <div className="tnum mt-1 text-xl font-extrabold">{tokens}</div>
+        </div>
+      </div>
+      <p className="mt-2 border-t border-[var(--border)] pt-2 text-[11px] leading-relaxed text-[var(--text-faint)]">
+        This provider reports usage or balance data instead of quota reset windows.
+      </p>
+    </div>
   );
 }
 

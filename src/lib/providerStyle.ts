@@ -58,6 +58,60 @@ export function providerStyle(kind: ProviderKind): ProviderStyle {
         accentBar: "bg-indigo-500",
         chipBg: providerIconChip,
       };
+    case "openrouter":
+      return {
+        label: "OpenRouter",
+        gradient: "from-slate-600 to-black dark:from-zinc-300 dark:to-white",
+        dot: "bg-black dark:bg-zinc-100",
+        tagline: "OpenRouter Credits",
+        accentBar: "bg-sky-500",
+        chipBg: providerIconChip,
+      };
+    case "openai_api":
+      return {
+        label: "OpenAI API",
+        gradient: "from-emerald-600 to-zinc-900 dark:from-emerald-300 dark:to-zinc-100",
+        dot: "bg-emerald-600",
+        tagline: "OpenAI Admin Usage",
+        accentBar: "bg-emerald-500",
+        chipBg: providerIconChip,
+      };
+    case "anthropic_api":
+      return {
+        label: "Anthropic API",
+        gradient: "from-stone-500 to-orange-700 dark:from-orange-200 dark:to-stone-100",
+        dot: "bg-orange-600",
+        tagline: "Anthropic Admin Usage",
+        accentBar: "bg-orange-500",
+        chipBg: providerIconChip,
+      };
+    case "claude_code":
+      return {
+        label: "Claude Code",
+        gradient: "from-orange-600 to-zinc-900 dark:from-orange-200 dark:to-zinc-100",
+        dot: "bg-orange-500",
+        tagline: "Claude Code Analytics",
+        accentBar: "bg-amber-500",
+        chipBg: providerIconChip,
+      };
+    case "cursor":
+      return {
+        label: "Cursor",
+        gradient: "from-zinc-800 to-cyan-700 dark:from-zinc-100 dark:to-cyan-200",
+        dot: "bg-cyan-600",
+        tagline: "Cursor Team Usage",
+        accentBar: "bg-cyan-500",
+        chipBg: providerIconChip,
+      };
+    case "contextual_ai":
+      return {
+        label: "Contextual AI",
+        gradient: "from-fuchsia-700 to-teal-700 dark:from-fuchsia-200 dark:to-teal-200",
+        dot: "bg-fuchsia-600",
+        tagline: "Contextual Billing",
+        accentBar: "bg-fuchsia-500",
+        chipBg: providerIconChip,
+      };
   }
 }
 

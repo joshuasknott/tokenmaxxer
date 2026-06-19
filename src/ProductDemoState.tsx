@@ -1,16 +1,25 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { FiCheckCircle, FiDownload, FiPlus, FiRefreshCw, FiSettings } from "react-icons/fi";
 import type { AccountConfig, ProviderDescriptor, Snapshot, UsageEvent } from "./types";
 import { AccountCard } from "./components/AccountCard";
 import { AccountDetailsModal } from "./components/AccountDetailsModal";
 import { AddAccountWizard } from "./components/AddAccountWizard";
 import { Logo } from "./components/Logo";
+import { ProviderLogo } from "./components/ProviderLogo";
 import { SummaryTiles } from "./components/SummaryTiles";
 import { UsageChart } from "./components/UsageChart";
+import { providerStyle } from "./lib/providerStyle";
 
 const productAccounts: AccountConfig[] = [
   { id: "codex-personal", label: "maya.chen@example.com", provider: "codex", authRef: "vault_codex" },
   { id: "antigravity-work", label: "liam.patel@example.com", provider: "antigravity", authRef: "vault_antigravity" },
   { id: "deepseek-key", label: "DeepSeek production key", provider: "deepseek", authRef: "vault_deepseek" },
+  { id: "openrouter-credits", label: "OpenRouter routing key", provider: "openrouter", authRef: "vault_openrouter" },
+  { id: "openai-org", label: "OpenAI platform org", provider: "openai_api", authRef: "vault_openai" },
+  { id: "anthropic-org", label: "Anthropic platform org", provider: "anthropic_api", authRef: "vault_anthropic" },
+  { id: "claude-code-team", label: "Claude Code team", provider: "claude_code", authRef: "vault_claude_code" },
+  { id: "cursor-team", label: "Cursor engineering team", provider: "cursor", authRef: "vault_cursor" },
+  { id: "contextual-tenant", label: "Contextual AI tenant", provider: "contextual_ai", authRef: "vault_contextual" },
 ];
 
 const productProviders: ProviderDescriptor[] = [
@@ -33,6 +42,36 @@ const productProviders: ProviderDescriptor[] = [
     kind: "z_ai",
     displayName: "Z.ai",
     credentialDescription: "Track a GLM coding plan key.",
+  },
+  {
+    kind: "openrouter",
+    displayName: "OpenRouter",
+    credentialDescription: "Track credits and key usage.",
+  },
+  {
+    kind: "openai_api",
+    displayName: "OpenAI API",
+    credentialDescription: "Track org usage and costs with an admin key.",
+  },
+  {
+    kind: "anthropic_api",
+    displayName: "Anthropic API",
+    credentialDescription: "Track org usage and cost reports.",
+  },
+  {
+    kind: "claude_code",
+    displayName: "Claude Code",
+    credentialDescription: "Track team Claude Code analytics.",
+  },
+  {
+    kind: "cursor",
+    displayName: "Cursor Teams",
+    credentialDescription: "Track team usage events and spend.",
+  },
+  {
+    kind: "contextual_ai",
+    displayName: "Contextual AI",
+    credentialDescription: "Track billing balance and monthly usage.",
   },
 ];
 
@@ -81,8 +120,8 @@ const productSnapshots: Record<string, Snapshot> = {
         limitWindowSeconds: 18000,
         resetsAt: new Date(Date.now() + 7140000).toISOString(),
         models: [
-          { label: "Gemini 1.5 Pro", modelId: "gemini-1.5-pro", vendor: "gemini", usedPercent: 46, resetTime: null },
-          { label: "Gemini 1.5 Flash", modelId: "gemini-1.5-flash", vendor: "gemini", usedPercent: 28, resetTime: null },
+          { label: "Gemini 3.1 Pro", modelId: "gemini-3.1-pro-preview", vendor: "gemini", usedPercent: 46, resetTime: null },
+          { label: "Gemini 3.5 Flash", modelId: "gemini-3.5-flash", vendor: "gemini", usedPercent: 28, resetTime: null },
         ],
       },
       {
@@ -91,8 +130,8 @@ const productSnapshots: Record<string, Snapshot> = {
         limitWindowSeconds: 604800,
         resetsAt: new Date(Date.now() + 250800000).toISOString(),
         models: [
-          { label: "Claude 3.5 Sonnet", modelId: "claude-3-5-sonnet", vendor: "claude", usedPercent: 62, resetTime: null },
-          { label: "GPT-4o", modelId: "gpt-4o", vendor: "gpt", usedPercent: 34, resetTime: null },
+          { label: "Claude Sonnet 4.6", modelId: "claude-sonnet-4-6", vendor: "claude", usedPercent: 62, resetTime: null },
+          { label: "GPT-5.5", modelId: "gpt-5.5", vendor: "gpt", usedPercent: 34, resetTime: null },
         ],
       },
     ],
@@ -118,6 +157,104 @@ const productSnapshots: Record<string, Snapshot> = {
       tokensUsed: 48000,
       tokenBudget: 100000,
       ratePerMtuGbp: 20,
+    },
+    isStale: false,
+    error: null,
+  },
+  "openrouter-credits": {
+    accountId: "openrouter-credits",
+    timestamp: Date.now() - 154000,
+    planName: "OpenRouter Credits",
+    accountDetail: "Routing key",
+    providerKind: "openrouter",
+    balanceGbp: 32.18,
+    windows: [],
+    cost: {
+      estimatedGbp: 7.64,
+      tokensUsed: 0,
+      tokenBudget: 0,
+      ratePerMtuGbp: 0,
+    },
+    isStale: false,
+    error: null,
+  },
+  "openai-org": {
+    accountId: "openai-org",
+    timestamp: Date.now() - 92000,
+    planName: "OpenAI Admin Usage",
+    accountDetail: "Platform organization",
+    providerKind: "openai_api",
+    windows: [],
+    cost: {
+      estimatedGbp: 42.36,
+      tokensUsed: 18400000,
+      tokenBudget: 0,
+      ratePerMtuGbp: 2.3,
+    },
+    isStale: false,
+    error: null,
+  },
+  "anthropic-org": {
+    accountId: "anthropic-org",
+    timestamp: Date.now() - 128000,
+    planName: "Anthropic Admin Usage",
+    accountDetail: "Workspace platform",
+    providerKind: "anthropic_api",
+    windows: [],
+    cost: {
+      estimatedGbp: 31.91,
+      tokensUsed: 12200000,
+      tokenBudget: 0,
+      ratePerMtuGbp: 2.62,
+    },
+    isStale: false,
+    error: null,
+  },
+  "claude-code-team": {
+    accountId: "claude-code-team",
+    timestamp: Date.now() - 204000,
+    planName: "Claude Code Analytics",
+    accountDetail: "Engineering organization",
+    providerKind: "claude_code",
+    windows: [],
+    cost: {
+      estimatedGbp: 18.72,
+      tokensUsed: 7600000,
+      tokenBudget: 0,
+      ratePerMtuGbp: 2.46,
+    },
+    isStale: false,
+    error: null,
+  },
+  "cursor-team": {
+    accountId: "cursor-team",
+    timestamp: Date.now() - 74000,
+    planName: "Cursor Team Usage",
+    accountDetail: "Engineering team",
+    providerKind: "cursor",
+    windows: [],
+    cost: {
+      estimatedGbp: 24.58,
+      tokensUsed: 9800000,
+      tokenBudget: 0,
+      ratePerMtuGbp: 2.51,
+    },
+    isStale: false,
+    error: null,
+  },
+  "contextual-tenant": {
+    accountId: "contextual-tenant",
+    timestamp: Date.now() - 168000,
+    planName: "Contextual AI Billing",
+    accountDetail: "Tenant billing",
+    providerKind: "contextual_ai",
+    balanceGbp: 86.53,
+    windows: [],
+    cost: {
+      estimatedGbp: 9.27,
+      tokensUsed: 2100000,
+      tokenBudget: 0,
+      ratePerMtuGbp: 4.41,
     },
     isStale: false,
     error: null,
@@ -172,6 +309,10 @@ export function ProductDashboardState() {
   return <ProductDashboardFrame />;
 }
 
+export function ProductEmptyState() {
+  return <ProductDashboardFrame accounts={[]} snapshots={{}} />;
+}
+
 export function ProductAddAccountState() {
   return (
     <ProductDashboardFrame>
@@ -202,9 +343,54 @@ export function ProductAccountDetailsState() {
   );
 }
 
-function ProductDashboardFrame({ children }: { children?: ReactNode }) {
+export function ProductSettingsState() {
+  return (
+    <ProductDashboardFrame>
+      <DemoSettingsPanel />
+    </ProductDashboardFrame>
+  );
+}
+
+export function ProductStateMatrix() {
+  const snapshots: Record<string, Snapshot> = {
+    ...productSnapshots,
+    "codex-personal": {
+      ...productSnapshots["codex-personal"],
+      isStale: true,
+      timestamp: Date.now() - 1000 * 60 * 52,
+    },
+    "antigravity-work": {
+      ...productSnapshots["antigravity-work"],
+      error: "Google token refresh failed: refresh token expired or revoked.",
+      isStale: true,
+      timestamp: Date.now() - 1000 * 60 * 122,
+    },
+  };
+  delete snapshots["deepseek-key"];
+
+  return (
+    <ProductDashboardFrame
+      accounts={productAccounts.slice(0, 4)}
+      snapshots={snapshots}
+      titleSuffix="State QA"
+    />
+  );
+}
+
+function ProductDashboardFrame({
+  children,
+  accounts = productAccounts,
+  snapshots = productSnapshots,
+  titleSuffix,
+}: {
+  children?: ReactNode;
+  accounts?: AccountConfig[];
+  snapshots?: Record<string, Snapshot>;
+  titleSuffix?: string;
+}) {
   const [period, setPeriod] = useState<"day" | "week" | "month" | "year" | "all">("week");
   const events = useMemo(productEvents, []);
+  const isEmpty = accounts.length === 0;
 
   return (
     <div className="product-dashboard-state tokenmaxxer-app relative" data-theme="dark" style={productTheme}>
@@ -213,6 +399,11 @@ function ProductDashboardFrame({ children }: { children?: ReactNode }) {
           <Logo size="md" />
           <h2 className="mt-3 text-xl font-bold tracking-tight lg:mt-0">
             Quota Board
+            {titleSuffix ? (
+              <span className="ml-2 text-sm font-semibold text-[var(--text-muted)]">
+                / {titleSuffix}
+              </span>
+            ) : null}
           </h2>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
             Live usage ledger for tracked local AI provider accounts.
@@ -220,20 +411,27 @@ function ProductDashboardFrame({ children }: { children?: ReactNode }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" className="btn-ghost inline-flex items-center gap-2">
+          <button type="button" className="btn-ghost inline-flex items-center gap-2" disabled={isEmpty}>
+            <FiRefreshCw className="h-4 w-4" />
             Refresh All
           </button>
           <button type="button" className="btn-primary inline-flex items-center gap-2">
+            <FiPlus className="h-4 w-4" />
             Add Account
           </button>
         </div>
       </header>
 
-      <div className="space-y-5 pt-5">
+      {isEmpty ? (
+        <div className="pt-4">
+          <ProductEmptyPanel />
+        </div>
+      ) : (
+      <div className="space-y-4 pt-4">
         <SummaryTiles
-          snapshots={productSnapshots}
-          accountCount={productAccounts.length}
-          accounts={productAccounts}
+          snapshots={snapshots}
+          accountCount={accounts.length}
+          accounts={accounts}
         />
 
         <section className="space-y-3">
@@ -242,7 +440,7 @@ function ProductDashboardFrame({ children }: { children?: ReactNode }) {
               <h3 className="text-sm font-bold tracking-tight">
                 Tracked Accounts
                 <span className="ml-1 font-medium text-[var(--text-muted)]">
-                  ({productAccounts.length})
+                  ({accounts.length})
                 </span>
               </h3>
               <p className="mt-0.5 text-xs text-[var(--text-muted)]">
@@ -267,12 +465,12 @@ function ProductDashboardFrame({ children }: { children?: ReactNode }) {
             </div>
           </div>
 
-          <div className="grid gap-3 xl:grid-cols-3">
-            {productAccounts.map((account) => (
+          <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
+            {accounts.map((account) => (
               <AccountCard
                 key={account.id}
                 account={account}
-                snapshot={productSnapshots[account.id] ?? null}
+                snapshot={snapshots[account.id] ?? null}
                 onRetry={() => undefined}
                 onRemove={() => undefined}
               />
@@ -292,8 +490,119 @@ function ProductDashboardFrame({ children }: { children?: ReactNode }) {
           <UsageChart events={events} period={period} />
         </section>
       </div>
+      )}
 
       {children}
+    </div>
+  );
+}
+
+function ProductEmptyPanel() {
+  return (
+    <div className="rounded-lg border border-dashed border-[var(--border-strong)] bg-[var(--bg-elev)]">
+      <div className="px-5 py-10 text-center sm:px-8">
+        <h3 className="text-lg font-extrabold tracking-tight">
+          Start your local quota ledger
+        </h3>
+        <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[var(--text-muted)]">
+          Add local or developer AI credentials to monitor token usage, spend,
+          reset windows, API balances, and stale fetches from one desktop board.
+        </p>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          {productProviders.slice(0, 10).map((provider) => {
+            const style = providerStyle(provider.kind);
+            return (
+              <span
+                key={provider.kind}
+                className={`flex h-11 w-11 items-center justify-center rounded-lg ${style.chipBg}`}
+                title={style.label}
+              >
+                <ProviderLogo kind={provider.kind} className="h-6 w-6" />
+              </span>
+            );
+          })}
+        </div>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+          <button type="button" className="btn-primary inline-flex items-center gap-2">
+            <FiPlus className="h-4 w-4" />
+            Add Account
+          </button>
+          <span className="text-xs font-medium text-[var(--text-muted)]">
+            Credentials stay in the local desktop vault.
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DemoSettingsPanel() {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-lg border border-[var(--border)] bg-[var(--bg-elev)] p-5 shadow-2xl">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-base font-bold">Settings</h2>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              Display and updater controls for this desktop.
+            </p>
+          </div>
+          <button className="rounded-md px-2 py-1 text-sm font-semibold text-[var(--text-muted)] hover:bg-[var(--bg-elev-2)] hover:text-[var(--text)]">
+            Close
+          </button>
+        </div>
+
+        <div className="mt-6">
+          <div className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--text-faint)]">
+            Theme
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {(["system", "light", "dark"] as const).map((mode) => (
+              <button
+                key={mode}
+                className={`rounded-lg border p-3 text-left transition ${
+                  mode === "system"
+                    ? "border-[var(--accent-color)] bg-[var(--bg-elev-2)]"
+                    : "border-[var(--border)] hover:border-[var(--border-strong)]"
+                }`}
+              >
+                <span className="block text-sm font-bold capitalize">{mode}</span>
+                <span className="mt-1 block text-xs text-[var(--text-muted)]">
+                  {mode === "system" ? "Follow OS" : mode === "light" ? "Bright board" : "Low-light board"}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-6 border-t border-[var(--border)] pt-5">
+          <div className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--text-faint)]">
+            Updates
+          </div>
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-elev-2)] p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-sm font-bold">
+                  <FiCheckCircle className="h-4 w-4 text-emerald-400" />
+                  App updates
+                </div>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                  TokenMaxxer is up to date.
+                </p>
+              </div>
+              <button className="btn-ghost inline-flex shrink-0 items-center gap-2">
+                <FiDownload className="h-4 w-4" />
+                Check
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg-elev-2)] p-3 text-xs text-[var(--text-muted)]">
+          <FiSettings className="h-4 w-4 shrink-0" />
+          Demo panel with no desktop side effects.
+        </div>
+      </div>
     </div>
   );
 }

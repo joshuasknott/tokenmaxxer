@@ -122,7 +122,28 @@ pub fn spawn(app: AppHandle) {
                         let mut diff_tokens = 0.0;
                         let mut diff_gbp = 0.0;
 
-                        if snapshot.provider_kind.as_deref() == Some("deepseek") {
+                        if snapshot.windows.is_empty() && prev.windows.is_empty() {
+                            // Report-style providers expose real cumulative
+                            // cost/token counters for the selected reporting
+                            // window. Balance-only providers fall back to
+                            // detecting a drop in remaining credits.
+                            let direct_tokens = snapshot.cost.tokens_used - prev.cost.tokens_used;
+                            let direct_cost = snapshot.cost.estimated_gbp - prev.cost.estimated_gbp;
+
+                            if direct_tokens > 0.0 || direct_cost > 0.0001 {
+                                diff_tokens = direct_tokens.max(0.0);
+                                diff_gbp = direct_cost.max(0.0);
+                            } else if let (Some(prev_bal), Some(curr_bal)) =
+                                (prev.balance_gbp, snapshot.balance_gbp)
+                            {
+                                let diff = prev_bal - curr_bal;
+                                if diff > 0.0001 {
+                                    diff_gbp = diff;
+                                    let rate = snapshot.cost.rate_per_mtu_gbp.max(0.16);
+                                    diff_tokens = diff * 1_000_000.0 / rate;
+                                }
+                            }
+                        } else if snapshot.provider_kind.as_deref() == Some("deepseek") {
                             if let (Some(prev_bal), Some(curr_bal)) =
                                 (prev.balance_gbp, snapshot.balance_gbp)
                             {
