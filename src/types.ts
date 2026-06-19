@@ -113,3 +113,10 @@ export interface UsageEvent {
   tokensUsed: number;
   costGbp: number;
 }
+
+// ---- Isolated Codex profile types ----
+
+export interface CodexProfileSession {
+  profileId: string;
+  command: string;
+}

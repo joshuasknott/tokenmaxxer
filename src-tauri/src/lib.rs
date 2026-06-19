@@ -32,6 +32,8 @@ pub fn run() {
             commands::get_config,
             commands::list_providers,
             commands::add_account,
+            commands::prepare_codex_profile,
+            commands::complete_codex_profile,
             commands::remove_account,
             commands::refresh_account,
             commands::get_snapshot,

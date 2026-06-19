@@ -30,12 +30,12 @@ const productProviders: ProviderDescriptor[] = [
   {
     kind: "codex",
     displayName: "Codex / ChatGPT",
-    credentialDescription: "Paste your local Codex auth JSON.",
+    credentialDescription: "Sign in through an isolated local Codex profile.",
   },
   {
     kind: "antigravity",
     displayName: "Google Antigravity",
-    credentialDescription: "Connect a Google AI Ultra account.",
+    credentialDescription: "Experimental direct quota tracking.",
   },
   {
     kind: "deepseek",

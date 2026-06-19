@@ -92,10 +92,10 @@ pub fn spawn(app: AppHandle) {
                 let provider = registry::make(kind);
                 let fetch_result = provider.fetch(&account.id, &creds).await;
 
-                // Persist any updated credentials (e.g. rotated refresh tokens)
-                // back to the vault BEFORE processing the snapshot. This is
-                // critical for Codex (single-use refresh tokens) and beneficial
-                // for Antigravity (cached access tokens). We re-load the vault
+                // Persist any provider-managed credential updates before
+                // processing the snapshot. Codex deliberately never returns an
+                // update here: its isolated profile remains the only owner of
+                // that account's login state. We re-load the vault
                 // for each write to avoid overwriting changes from other
                 // accounts that were persisted in the same poll cycle.
                 if let Ok(ref fr) = fetch_result {

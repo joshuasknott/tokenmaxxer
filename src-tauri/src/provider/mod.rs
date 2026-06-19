@@ -206,15 +206,14 @@ pub struct Snapshot {
 /// Opaque credential blob.
 pub type Credentials = serde_json::Value;
 
-/// Result of a provider fetch, including any credential updates that need
-/// to be persisted back to the vault (e.g. rotated refresh tokens).
+/// Result of a provider fetch, including any provider-managed credential
+/// updates that need to be persisted back to the vault.
 #[derive(Debug)]
 pub struct FetchResult {
     pub snapshot: Snapshot,
     /// If set, the scheduler must persist these updated credentials back to
-    /// the vault under the account's `auth_ref`. This is used by providers
-    /// whose tokens rotate (Codex) or whose access tokens are cached
-    /// (Antigravity).
+    /// the vault under the account's `auth_ref`. Codex profiles intentionally
+    /// never use this path because Codex remains the credential owner.
     pub updated_credentials: Option<Credentials>,
 }
 
@@ -280,8 +279,7 @@ pub mod registry {
             ProviderDescriptor {
                 kind: ProviderKind::Codex,
                 display_name: "Codex".into(),
-                credential_description: "Paste the contents of your ~/.codex/auth.json file."
-                    .into(),
+                credential_description: "Sign in through an isolated local Codex profile.".into(),
             },
             ProviderDescriptor {
                 kind: ProviderKind::Deepseek,

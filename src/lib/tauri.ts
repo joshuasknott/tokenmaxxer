@@ -5,6 +5,7 @@ import { check, type DownloadEvent } from "@tauri-apps/plugin-updater";
 import type {
   AccountConfig,
   AppConfig,
+  CodexProfileSession,
   ProviderDescriptor,
   ProviderKind,
   Snapshot,
@@ -50,6 +51,17 @@ export function onUsageUpdate(
 ): Promise<UnlistenFn> {
   return listen<Snapshot>("usage:update", (e) => handler(e.payload));
 }
+
+// ---- Isolated Codex profiles ----
+
+export const prepareCodexProfile = (): Promise<CodexProfileSession> =>
+  invoke("prepare_codex_profile");
+
+export const completeCodexProfile = (
+  profileId: string,
+  label: string
+): Promise<AccountConfig> =>
+  invoke("complete_codex_profile", { profileId, label });
 
 // ---- App updates ----
 

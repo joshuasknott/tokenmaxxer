@@ -4,17 +4,18 @@ TokenMaxxer is a local-first app for tracking LLM subscription usage
 windows across multiple accounts and providers. It shows current usage,
 reset times, per-model quota details where available, and estimated spend.
 
-The app runs on Windows, macOS, and Linux desktops. Account credentials stay in
-the operating system's native secure storage (Windows DPAPI, macOS Keychain,
-or Linux Secret Service); no credentials are intended to live in this
-repository.
+The app runs on Windows, macOS, and Linux desktops. API and OAuth credentials
+are stored locally in the operating system's native secure storage (Windows
+DPAPI, macOS Keychain, or Linux Secret Service). Codex profiles are an
+exception: Codex owns the login cache in an isolated local `CODEX_HOME` because
+the CLI needs access to it. Treat every Codex `auth.json` as a password.
 
 ## What It Tracks
 
 | Provider | What you see | How it is read |
 | --- | --- | --- |
-| Codex / ChatGPT | 5-hour and weekly usage windows with reset countdowns | `GET chatgpt.com/backend-api/wham/usage` with a pasted Codex OAuth token set |
-| Gemini / Antigravity OAuth | Per-model quota with reset details | Google's Cloud Code backend with a Google OAuth refresh token |
+| Codex / ChatGPT | 5-hour and weekly usage windows with reset countdowns | Read-only access-token lookup from an isolated Codex profile |
+| Gemini / Antigravity OAuth | Per-model quota with reset details | Experimental direct Cloud Code OAuth behavior |
 | DeepSeek | Account balance and estimated usage | DeepSeek API credentials |
 | Z.ai | Quota-style usage where available | Z.ai API credentials |
 | OpenRouter | Remaining credits and all-time key/account spend | OpenRouter `/credits` and `/key` APIs |
@@ -33,6 +34,22 @@ official or directly verified usage, quota, or balance API. Gemini API-key-only,
 Mistral, Together, and personal/editor-only tools without billing endpoints
 remain documented backlog candidates until their public API surfaces expose
 enough data for a truthful snapshot.
+
+## Multiple Accounts
+
+Every account is an independent local record, so you can add multiple API keys
+for providers such as DeepSeek and Z.ai without one replacing another.
+
+Codex accounts use **Create Codex Profile** in the app. It creates a separate
+`CODEX_HOME` and asks you to run the normal `codex login` command for that one
+account. TokenMaxxer stores only the profile reference; it never copies or
+refreshes the Codex refresh token. Reconnect only the affected profile if Codex
+or OpenAI invalidates its session.
+
+Antigravity remains an experimental direct integration. Add each authorised
+credential as a separate account, but provider-side token expiry or revocation
+can still require reconnecting that account. TokenMaxxer does not provide a
+universal Google sign-in flow or promise to preserve unsupported IDE sessions.
 
 ## Prerequisites
 
@@ -287,51 +304,21 @@ Windows continues to store credentials in the DPAPI-encrypted `vault.enc` file.
 Early non-Windows builds that wrote plaintext `vault.enc` are migrated into the
 native keyring on first load and the plaintext file is removed.
 
-For Gemini / Antigravity OAuth, provide a credential JSON object. There are two
-ways to obtain it:
-
-### Option A: Decode from the Antigravity IDE (recommended)
-
-Run the decoder script:
-
-```bash
-node decode-antigravity-token.cjs
-```
-
-This produces `antigravity-token.tmp.json` with:
-
-```json
-{
-  "refresh_token": "1//...",
-  "access_token": "ya29...",
-  "expires_at": 1781640643
-}
-```
-
-The decoded token does **not** include `client_secret` because the IDE does not
-store it locally. You must supply the client secret separately:
-
-- **Option 1**: Add `"client_secret": "YOUR_SECRET"` to the JSON before pasting
-  it into the wizard.
-- **Option 2**: Set the `TOKENMAXXER_GOOGLE_CLIENT_SECRET` environment variable
-  before launching TokenMaxxer (e.g. in a `.env` file or shell profile).
-
-The `client_secret` is **required** for token refresh - without it, TokenMaxxer
-cannot call Google's OAuth endpoint to obtain fresh access tokens.
-
-### Option B: Manual entry
-
-Provide a JSON object with all required fields:
+For experimental Antigravity tracking, provide an authorised credential JSON
+object created through a provider-approved flow:
 
 ```json
 {
   "refresh_token": "YOUR_REFRESH_TOKEN",
-  "client_secret": "YOUR_GOOGLE_OAUTH_CLIENT_SECRET",
+  "client_secret": "YOUR_REGISTERED_OAUTH_CLIENT_SECRET",
   "email": "you@example.com"
 }
 ```
 
 `email` is optional and used only for display purposes in the account card.
+`client_secret` must belong to an OAuth client you are authorised to use; do
+not copy it from another application or treat the integration as a substitute
+for a provider-supported OAuth connection.
 
 ## Repository Hygiene
 

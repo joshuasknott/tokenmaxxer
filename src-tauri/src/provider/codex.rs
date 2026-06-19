@@ -6,10 +6,9 @@
 //!   GET https://chatgpt.com/backend-api/wham/usage
 //!   Authorization: Bearer <access_token>   (from ~/.codex/auth.json)
 //!
-//! The access token is a short-lived JWT; we refresh it with the stored
-//! refresh_token via `POST https://auth.openai.com/oauth/token` before each
-//! fetch (rotating the refresh token, which is single-use). The rotated token
-//! set is written back through the vault so the account keeps working.
+//! TokenMaxxer only reads the access token from an isolated `CODEX_HOME`
+//! profile. Codex itself owns refresh-token rotation and writes any update back
+//! to that profile; the app never copies or refreshes Codex credentials.
 //!
 //! Response shape (`RateLimitStatusPayload`) — primary_window is the 5h window,
 //! secondary_window is the weekly window. Each carries `used_percent`,
@@ -22,18 +21,22 @@ use super::{
 use async_trait::async_trait;
 use chrono::{DateTime, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 const WHAM_USAGE_URL: &str = "https://chatgpt.com/backend-api/wham/usage";
-const TOKEN_REFRESH_URL: &str = "https://auth.openai.com/oauth/token";
 
-/// The shape stored in the vault, mirroring `~/.codex/auth.json` -> tokens.
-/// We persist access + refresh token so we can rotate over time.
+/// The active portion of an `auth.json` file required to read a usage snapshot.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CodexTokens {
     pub access_token: String,
-    pub refresh_token: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub account_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CodexProfileCredentials {
+    kind: String,
+    profile_id: String,
 }
 
 pub struct CodexProvider {
@@ -49,65 +52,60 @@ impl CodexProvider {
         Self { client }
     }
 
-    /// Parse the pasted credential blob. Accepts either:
-    /// - the full `auth.json` (we pull `tokens` out), or
-    /// - just the `tokens` object.
+    /// Parse a TokenMaxxer profile reference or a legacy auth object. Legacy
+    /// objects are read without refreshing so this app never rotates a token.
     fn parse_creds(creds: &Credentials) -> Result<CodexTokens, ProviderError> {
-        // Try `tokens` first (full auth.json), then fall back to the value
-        // being the tokens object directly.
-        let tokens_value = creds.get("tokens").unwrap_or(creds);
-        serde_json::from_value::<CodexTokens>(tokens_value.clone()).map_err(|e| {
-            ProviderError::InvalidCredentials(format!(
-                "expected a Codex tokens object with access_token + refresh_token: {e}"
-            ))
-        })
-    }
-
-    /// Refresh the access token using the refresh token. Returns the new token
-    /// set (refresh tokens are single-use and rotate on each refresh).
-    async fn refresh(&self, tokens: &CodexTokens) -> Result<CodexTokens, ProviderError> {
-        let resp = self
-            .client
-            .post(TOKEN_REFRESH_URL)
-            .json(&serde_json::json!({
-                "grant_type": "refresh_token",
-                "refresh_token": tokens.refresh_token,
-                // Codex CLI's OAuth client id. Required by the token endpoint.
-                "client_id": "app_EMoamEEZ73f0CkXaXp7hrann",
-            }))
-            .send()
-            .await?;
-
-        if !resp.status().is_success() {
-            let status = resp.status();
-            let body = resp.text().await.unwrap_or_default();
-            return Err(ProviderError::InvalidCredentials(format!(
-                "token refresh failed ({status}): {body}"
-            )));
+        if creds.get("kind").and_then(|value| value.as_str()) == Some("codex_profile") {
+            let profile = serde_json::from_value::<CodexProfileCredentials>(creds.clone())
+                .map_err(|e| {
+                    ProviderError::InvalidCredentials(format!("invalid Codex profile: {e}"))
+                })?;
+            if profile.kind != "codex_profile" {
+                return Err(ProviderError::InvalidCredentials(
+                    "invalid Codex profile kind".into(),
+                ));
+            }
+            let profile_id = Uuid::parse_str(&profile.profile_id).map_err(|_| {
+                ProviderError::InvalidCredentials("invalid Codex profile identifier".into())
+            })?;
+            let auth_path = crate::paths::codex_profiles_dir()
+                .map_err(|e| ProviderError::Other(e.to_string()))?
+                .join(profile_id.to_string())
+                .join("auth.json");
+            let raw = std::fs::read_to_string(&auth_path).map_err(|_| {
+                ProviderError::InvalidCredentials(
+                    "Codex profile is missing. Reconnect this account to create a new profile."
+                        .into(),
+                )
+            })?;
+            return validate_auth_json(&raw);
         }
 
-        #[derive(Deserialize)]
-        struct RefreshResponse {
-            access_token: String,
-            #[serde(default)]
-            refresh_token: Option<String>,
-        }
-        let parsed: RefreshResponse = resp
-            .json()
-            .await
-            .map_err(|e| ProviderError::Protocol(format!("refresh response parse: {e}")))?;
-
-        Ok(CodexTokens {
-            access_token: parsed.access_token,
-            // Refresh tokens rotate; fall back to the old one if omitted.
-            refresh_token: parsed
-                .refresh_token
-                .unwrap_or_else(|| tokens.refresh_token.clone()),
-            account_id: tokens.account_id.clone(),
-        })
+        parse_auth_value(creds)
     }
+}
 
-    /// Fetch usage using a (already-refreshed) access token.
+/// Validates an auth file without retaining its refresh token. This is used
+/// when registering a profile after the official Codex login flow completes.
+pub fn validate_auth_json(raw: &str) -> Result<CodexTokens, ProviderError> {
+    let auth: Credentials = serde_json::from_str(raw)
+        .map_err(|e| ProviderError::InvalidCredentials(format!("invalid Codex auth.json: {e}")))?;
+    parse_auth_value(&auth)
+}
+
+fn parse_auth_value(creds: &Credentials) -> Result<CodexTokens, ProviderError> {
+    // Try `tokens` first (full auth.json), then fall back to the value
+    // being the tokens object directly.
+    let tokens_value = creds.get("tokens").unwrap_or(creds);
+    serde_json::from_value::<CodexTokens>(tokens_value.clone()).map_err(|e| {
+        ProviderError::InvalidCredentials(format!(
+            "expected a Codex auth.json with an access_token: {e}"
+        ))
+    })
+}
+
+impl CodexProvider {
+    /// Fetch usage using the profile's current access token.
     async fn fetch_usage(
         &self,
         access_token: &str,
@@ -141,7 +139,7 @@ impl CodexProvider {
 /// Decode a JWT's payload (middle segment) and pull the `email` claim. Codex's
 /// access token is a JWT; the wham response doesn't always include email, so
 /// this is the reliable fallback.
-fn email_from_jwt(token: &str) -> Option<String> {
+pub fn email_from_jwt(token: &str) -> Option<String> {
     let segs: Vec<&str> = token.split('.').collect();
     if segs.len() < 2 {
         return None;
@@ -213,15 +211,8 @@ fn base64_decode(input: &str) -> Option<Vec<u8>> {
 impl Provider for CodexProvider {
     async fn validate(&self, creds: &Credentials) -> Result<(), ProviderError> {
         let tokens = Self::parse_creds(creds)?;
-        // Refresh + one fetch to confirm the credentials actually work. If
-        // refresh fails (token may already be valid), fall back to the stored
-        // access token before declaring the credentials invalid.
-        let refreshed = match self.refresh(&tokens).await {
-            Ok(r) => r,
-            Err(_) => tokens.clone(),
-        };
-        let acct = refreshed.account_id.clone().unwrap_or_default();
-        self.fetch_usage(&refreshed.access_token, &acct).await?;
+        let account_id = tokens.account_id.clone().unwrap_or_default();
+        self.fetch_usage(&tokens.access_token, &account_id).await?;
         Ok(())
     }
 
@@ -231,28 +222,8 @@ impl Provider for CodexProvider {
         creds: &Credentials,
     ) -> Result<FetchResult, ProviderError> {
         let tokens = Self::parse_creds(creds)?;
-        // Refresh up front so the access token is fresh. The refresh token
-        // rotates on each use (single-use), so we MUST persist the new set.
-        let (refreshed_tokens, did_refresh) = match self.refresh(&tokens).await {
-            Ok(r) => (r, true),
-            Err(_) => (tokens.clone(), false),
-        };
-        let snapshot = self
-            .fetch_usage(&refreshed_tokens.access_token, account_id)
-            .await?;
-
-        // Persist the rotated tokens back to the vault. The refresh token is
-        // single-use: if we don't persist the new one, the next poll will fail.
-        let updated_credentials = if did_refresh {
-            Some(serde_json::to_value(&refreshed_tokens).unwrap_or_default())
-        } else {
-            None
-        };
-
-        Ok(FetchResult {
-            snapshot,
-            updated_credentials,
-        })
+        let snapshot = self.fetch_usage(&tokens.access_token, account_id).await?;
+        Ok(FetchResult::snapshot_only(snapshot))
     }
 }
 
@@ -373,45 +344,53 @@ mod tests {
     fn parse_creds_full_auth_json() {
         let creds = serde_json::json!({
             "tokens": {
-                "access_token": "at-123",
-                "refresh_token": "rt-456"
+                "access_token": "at-123"
             }
         });
         let tokens = CodexProvider::parse_creds(&creds).unwrap();
         assert_eq!(tokens.access_token, "at-123");
-        assert_eq!(tokens.refresh_token, "rt-456");
     }
 
     #[test]
     fn parse_creds_direct_tokens_object() {
         let creds = serde_json::json!({
             "access_token": "at-direct",
-            "refresh_token": "rt-direct",
             "account_id": "acct-1"
         });
         let tokens = CodexProvider::parse_creds(&creds).unwrap();
         assert_eq!(tokens.access_token, "at-direct");
-        assert_eq!(tokens.refresh_token, "rt-direct");
         assert_eq!(tokens.account_id, Some("acct-1".into()));
     }
 
     #[test]
-    fn parse_creds_rejects_missing_fields() {
-        let creds = serde_json::json!({ "access_token": "only-at" });
+    fn parse_creds_rejects_missing_access_token() {
+        let creds = serde_json::json!({ "tokens": {} });
         assert!(CodexProvider::parse_creds(&creds).is_err());
+    }
+
+    #[test]
+    fn validate_auth_json_reads_only_the_access_token() {
+        let tokens = validate_auth_json(
+            r#"{
+            "tokens": {
+                "access_token": "at-profile",
+                "refresh_token": "never-retained"
+            }
+        }"#,
+        )
+        .unwrap();
+        assert_eq!(tokens.access_token, "at-profile");
     }
 
     #[test]
     fn codex_tokens_round_trip_serialization() {
         let tokens = CodexTokens {
             access_token: "at".into(),
-            refresh_token: "rt".into(),
             account_id: Some("acct".into()),
         };
         let serialized = serde_json::to_value(&tokens).unwrap();
         let deserialized: CodexTokens = serde_json::from_value(serialized).unwrap();
         assert_eq!(deserialized.access_token, "at");
-        assert_eq!(deserialized.refresh_token, "rt");
         assert_eq!(deserialized.account_id, Some("acct".into()));
     }
 
