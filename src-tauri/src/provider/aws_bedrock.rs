@@ -4,7 +4,9 @@
 //! adapter signs a CloudWatch GetMetricData request with the supplied AWS
 //! credentials and sums the official token metrics.
 
-use super::reporting::{days_ago, iso_z, optional_string, reporting_range, usage_snapshot};
+use super::reporting::{
+    days_ago, iso_z, optional_cost_gbp, optional_string, reporting_range, usage_snapshot,
+};
 use super::{Credentials, FetchResult, Provider, ProviderError};
 use async_trait::async_trait;
 use chrono::Utc;
@@ -269,7 +271,7 @@ impl AwsBedrockProvider {
             "Bedrock CloudWatch Metrics",
             &format!("{account_detail} ({throttles:.0} throttles)"),
             tokens,
-            0.0,
+            optional_cost_gbp(creds).unwrap_or(0.0),
             None,
         ))
     }
@@ -350,5 +352,11 @@ mod tests {
         );
         assert!(body.contains("InputTokenCount"));
         assert!(body.contains("OutputTokenCount"));
+    }
+
+    #[test]
+    fn optional_cost_override_flows_into_snapshot() {
+        let creds = serde_json::json!({ "estimated_cost_gbp": 12.34 });
+        assert_eq!(optional_cost_gbp(&creds), Some(12.34));
     }
 }

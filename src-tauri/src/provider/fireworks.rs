@@ -4,7 +4,10 @@
 //! export-metrics` command. This adapter can either read a CSV export path or
 //! invoke firectl and parse the generated CSV.
 
-use super::reporting::{days_ago, iso_z, optional_string, reporting_range, usage_snapshot};
+use super::reporting::{
+    days_ago, iso_z, optional_cost_gbp, optional_string, reporting_range, usage_snapshot,
+    usd_to_gbp,
+};
 use super::{Credentials, FetchResult, Provider, ProviderError};
 use async_trait::async_trait;
 use std::path::PathBuf;
@@ -54,7 +57,7 @@ impl FireworksProvider {
         })
     }
 
-    fn parse_csv_reader<R: std::io::Read>(reader: R) -> Result<f64, ProviderError> {
+    fn parse_csv_reader<R: std::io::Read>(reader: R) -> Result<(f64, f64), ProviderError> {
         let mut csv = csv::Reader::from_reader(reader);
         let headers = csv
             .headers()
@@ -76,8 +79,36 @@ impl FireworksProvider {
                 .then_some(index)
             })
             .collect();
+        let cost_columns: Vec<(usize, bool)> = headers
+            .iter()
+            .enumerate()
+            .filter_map(|(index, header)| {
+                let key = header.trim().to_ascii_lowercase();
+                let is_gbp = matches!(
+                    key.as_str(),
+                    "cost_gbp"
+                        | "cost_gbp_amount"
+                        | "amount_gbp"
+                        | "billing_cost_gbp"
+                        | "total_cost_gbp"
+                );
+                let is_usd = matches!(
+                    key.as_str(),
+                    "cost"
+                        | "cost_usd"
+                        | "cost_usd_amount"
+                        | "amount"
+                        | "amount_usd"
+                        | "billing_cost"
+                        | "total_cost"
+                        | "total_cost_usd"
+                );
+                (is_gbp || is_usd).then_some((index, is_gbp))
+            })
+            .collect();
 
         let mut tokens = 0.0;
+        let mut cost_gbp = 0.0;
         for row in csv.records() {
             let row =
                 row.map_err(|e| ProviderError::Protocol(format!("Fireworks CSV row: {e}")))?;
@@ -86,8 +117,14 @@ impl FireworksProvider {
                     tokens += value.trim().replace(',', "").parse::<f64>().unwrap_or(0.0);
                 }
             }
+            for (index, is_gbp) in &cost_columns {
+                if let Some(value) = row.get(*index) {
+                    let parsed = value.trim().replace(',', "").parse::<f64>().unwrap_or(0.0);
+                    cost_gbp += if *is_gbp { parsed } else { usd_to_gbp(parsed) };
+                }
+            }
         }
-        Ok(tokens)
+        Ok((tokens, cost_gbp))
     }
 
     fn export_with_firectl(
@@ -135,7 +172,7 @@ impl FireworksProvider {
     fn read_tokens(
         parsed: &FireworksCreds,
         creds: &Credentials,
-    ) -> Result<(f64, String), ProviderError> {
+    ) -> Result<(f64, f64, String), ProviderError> {
         let (path, should_remove) = if let Some(path) = parsed.metrics_csv_path.as_deref() {
             (PathBuf::from(path), false)
         } else {
@@ -144,11 +181,12 @@ impl FireworksProvider {
         let file = std::fs::File::open(&path).map_err(|e| {
             ProviderError::Protocol(format!("Fireworks metrics CSV could not be opened: {e}"))
         })?;
-        let tokens = Self::parse_csv_reader(file)?;
+        let (tokens, csv_cost_gbp) = Self::parse_csv_reader(file)?;
         if should_remove {
             let _ = std::fs::remove_file(&path);
         }
-        Ok((tokens, path.display().to_string()))
+        let cost_gbp = optional_cost_gbp(creds).unwrap_or(csv_cost_gbp);
+        Ok((tokens, cost_gbp, path.display().to_string()))
     }
 
     fn fetch_snapshot(
@@ -157,14 +195,14 @@ impl FireworksProvider {
         creds: &Credentials,
         account_id: &str,
     ) -> Result<super::Snapshot, ProviderError> {
-        let (tokens, source) = Self::read_tokens(parsed, creds)?;
+        let (tokens, cost_gbp, source) = Self::read_tokens(parsed, creds)?;
         Ok(usage_snapshot(
             account_id,
             "fireworks",
             "Fireworks Billing Export",
             &source,
             tokens,
-            0.0,
+            cost_gbp,
             None,
         ))
     }
@@ -208,6 +246,18 @@ mod tests {
     #[test]
     fn parse_csv_sums_prompt_and_completion_tokens() {
         let csv = b"model,prompt_tokens,completion_tokens,usage_type\nfoo,10,7,serverless\nbar,3,4,serverless\n";
-        assert_eq!(FireworksProvider::parse_csv_reader(&csv[..]).unwrap(), 24.0);
+        assert_eq!(
+            FireworksProvider::parse_csv_reader(&csv[..]).unwrap(),
+            (24.0, 0.0)
+        );
+    }
+
+    #[test]
+    fn parse_csv_sums_cost_columns_to_gbp() {
+        let csv = b"model,prompt_tokens,completion_tokens,cost_usd\nfoo,10,7,1.00\nbar,3,4,2.00\n";
+        assert_eq!(
+            FireworksProvider::parse_csv_reader(&csv[..]).unwrap(),
+            (24.0, 2.37)
+        );
     }
 }

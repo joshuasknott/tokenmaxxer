@@ -184,6 +184,9 @@ For the full release checklist, including local preflight commands, required
 GitHub secrets, and expected release assets, see
 [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md).
 
+For live provider credential smoke checks that do not write to the desktop
+vault, see [`docs/LIVE_PROVIDER_SMOKE.md`](docs/LIVE_PROVIDER_SMOKE.md).
+
 ## Changelog Automation
 
 The marketing changelog is first-party site content with simple, user-facing
@@ -247,11 +250,11 @@ than one value:
 ```
 
 ```json
-{ "access_key_id": "AKIA...", "secret_access_key": "...", "region": "us-east-1", "start_days_ago": 30 }
+{ "access_key_id": "AKIA...", "secret_access_key": "...", "region": "us-east-1", "start_days_ago": 30, "estimated_cost_gbp": 0 }
 ```
 
 ```json
-{ "access_token": "eyJ...", "resource_id": "/subscriptions/.../providers/Microsoft.CognitiveServices/accounts/...", "start_days_ago": 30 }
+{ "access_token": "eyJ...", "resource_id": "/subscriptions/.../providers/Microsoft.CognitiveServices/accounts/...", "start_days_ago": 30, "estimated_cost_gbp": 0 }
 ```
 
 ```json
@@ -262,7 +265,10 @@ xAI requires a Management API key, not a normal Grok model key. Bedrock requires
 IAM credentials that can call CloudWatch `GetMetricData` for `AWS/Bedrock`.
 Azure requires a management-plane bearer token for the resource id. Fireworks
 can read an exported metrics CSV, or run `firectl billing export-metrics` when
-`firectl` is installed and logged in.
+`firectl` is installed and logged in. Bedrock and Azure OpenAI report official
+token metrics; include `estimated_cost_gbp` or `estimated_cost_usd` when you
+want a reconciled period cost. Fireworks reads cost columns from the CSV when
+the export includes `cost`, `cost_usd`, or `cost_gbp`.
 
 Local non-secret data lives under the per-user app data directory:
 

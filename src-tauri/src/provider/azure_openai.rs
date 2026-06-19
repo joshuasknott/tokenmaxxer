@@ -5,7 +5,7 @@
 //! account / AI Foundry resource.
 
 use super::reporting::{
-    days_ago, iso_z, json_response, optional_string, reporting_range, string_at,
+    days_ago, iso_z, json_response, optional_cost_gbp, optional_string, reporting_range, string_at,
     sum_fields_recursive, usage_snapshot,
 };
 use super::{Credentials, FetchResult, Provider, ProviderError};
@@ -148,7 +148,7 @@ impl AzureOpenAiProvider {
             "Azure Monitor Tokens",
             Self::account_detail(&parsed.resource_id),
             tokens,
-            0.0,
+            optional_cost_gbp(creds).unwrap_or(0.0),
             None,
         ))
     }

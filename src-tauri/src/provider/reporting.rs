@@ -57,6 +57,13 @@ pub fn optional_i64(creds: &Credentials, field: &str) -> Option<i64> {
         .and_then(|v| v.as_i64().or_else(|| v.as_str()?.parse::<i64>().ok()))
 }
 
+pub fn optional_f64(creds: &Credentials, field: &str) -> Option<f64> {
+    creds
+        .as_object()
+        .and_then(|obj| obj.get(field))
+        .and_then(parse_number)
+}
+
 pub fn parse_number(value: &Value) -> Option<f64> {
     match value {
         Value::Number(n) => n.as_f64(),
@@ -66,6 +73,15 @@ pub fn parse_number(value: &Value) -> Option<f64> {
         }
         _ => None,
     }
+}
+
+pub fn optional_cost_gbp(creds: &Credentials) -> Option<f64> {
+    optional_f64(creds, "estimated_cost_gbp")
+        .or_else(|| optional_f64(creds, "cost_gbp"))
+        .or_else(|| optional_f64(creds, "period_cost_gbp"))
+        .or_else(|| optional_f64(creds, "estimated_cost_usd").map(usd_to_gbp))
+        .or_else(|| optional_f64(creds, "cost_usd").map(usd_to_gbp))
+        .or_else(|| optional_f64(creds, "period_cost_usd").map(usd_to_gbp))
 }
 
 pub fn number_at<'a>(value: &'a Value, path: &[&str]) -> Option<f64> {
@@ -228,6 +244,18 @@ mod tests {
             )
             .unwrap(),
             "sk-admin"
+        );
+    }
+
+    #[test]
+    fn optional_cost_gbp_accepts_gbp_and_usd_aliases() {
+        assert_eq!(
+            optional_cost_gbp(&serde_json::json!({ "estimated_cost_gbp": "12.50" })),
+            Some(12.5)
+        );
+        assert_eq!(
+            optional_cost_gbp(&serde_json::json!({ "cost_usd": 10 })),
+            Some(7.9)
         );
     }
 

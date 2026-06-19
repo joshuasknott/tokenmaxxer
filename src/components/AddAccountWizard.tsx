@@ -603,7 +603,7 @@ function configProviderCopy(provider: ProviderKind): {
             <li>The app reads token metrics from the <code className={inlineCodeClass}>AWS/Bedrock</code> namespace.</li>
           </ol>
         ),
-        placeholder: '{ "access_key_id": "AKIA...", "secret_access_key": "...", "region": "us-east-1", "start_days_ago": 30 }',
+        placeholder: '{ "access_key_id": "AKIA...", "secret_access_key": "...", "region": "us-east-1", "start_days_ago": 30, "estimated_cost_gbp": 0 }',
       };
     case "azure_openai":
       return {
@@ -614,7 +614,7 @@ function configProviderCopy(provider: ProviderKind): {
             <li>The app reads token totals from Azure Monitor metrics.</li>
           </ol>
         ),
-        placeholder: '{ "access_token": "eyJ...", "resource_id": "/subscriptions/.../providers/Microsoft.CognitiveServices/accounts/...", "start_days_ago": 30 }',
+        placeholder: '{ "access_token": "eyJ...", "resource_id": "/subscriptions/.../providers/Microsoft.CognitiveServices/accounts/...", "start_days_ago": 30, "estimated_cost_gbp": 0 }',
       };
     case "fireworks":
       return {
