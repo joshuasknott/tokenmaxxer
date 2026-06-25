@@ -8,6 +8,7 @@ import { providerStyle } from "../lib/providerStyle";
 interface AddAccountWizardProps {
   onClose: () => void;
   onAdded: () => void;
+  initialProvider?: ProviderKind;
   providersOverride?: ProviderDescriptor[];
 }
 
@@ -37,7 +38,7 @@ const CONFIG_JSON_PROVIDERS = new Set<ProviderKind>([
 type ConnectionInfo = {
   method: string;
   accountCopy: string;
-  experimental?: boolean;
+  renewalNote?: string;
 };
 
 const CONNECTION_INFO: Record<ProviderKind, ConnectionInfo> = {
@@ -46,9 +47,9 @@ const CONNECTION_INFO: Record<ProviderKind, ConnectionInfo> = {
     accountCopy: "You can add as many Codex accounts as you need. Each one stays separate.",
   },
   antigravity: {
-    method: "Experimental connection",
-    accountCopy: "Add each account separately. This connection may occasionally need you to sign in again.",
-    experimental: true,
+    method: "Direct connector",
+    accountCopy: "One Antigravity connection tracks one Antigravity account. Add another account separately if you use more than one.",
+    renewalNote: "Antigravity controls when a connection expires or needs to be renewed.",
   },
   deepseek: { method: "API key", accountCopy: "Each key is kept as its own account." },
   z_ai: { method: "API key", accountCopy: "Each key is kept as its own account." },
@@ -78,17 +79,17 @@ function friendlyError(raw: string): string {
 
   if (/missing client_secret/i.test(s) || /Missing client_secret/i.test(s)) {
     return (
-      "This Antigravity credential is not sufficient to refresh usage. Reconnect it through a provider-approved flow, then add that account again."
+      "This Antigravity connection is missing the details needed to refresh usage. Reconnect it through the Antigravity connector flow, then add that account again."
     );
   }
   if (/google token refresh failed/i.test(s)) {
     return (
-      "Google rejected the token refresh request. The credential may be expired or revoked. Reconnect this account through a provider-approved flow."
+      "Google rejected the token refresh request. The connection may be expired or revoked. Reconnect this account through the Antigravity connector flow."
     );
   }
   if (/unauthorized.*refresh token may be revoked/i.test(s)) {
     return (
-      "The refresh token appears to be revoked. Reconnect this account through a provider-approved flow."
+      "The refresh token appears to be revoked. Reconnect this account through the Antigravity connector flow."
     );
   }
   if (/expected json with.*refresh_token/i.test(s)) {
@@ -98,6 +99,9 @@ function friendlyError(raw: string): string {
   }
   if (/Could not open Codex sign-in/i.test(s)) {
     return "We could not open Codex sign-in. Check that Codex is installed, then try again.";
+  }
+  if (/Could not find the Codex command/i.test(s)) {
+    return "TokenMaxxer could not find the Codex command. Open Codex once, or install the Codex CLI, then try again.";
   }
   if (/OpenAI.*(401|403|invalid credentials|insufficient permissions|api\.usage\.read)/i.test(s)) {
     return (
@@ -137,15 +141,16 @@ function friendlyError(raw: string): string {
 export function AddAccountWizard({
   onClose,
   onAdded,
+  initialProvider,
   providersOverride,
 }: AddAccountWizardProps) {
   const [providers, setProviders] = useState<ProviderDescriptor[]>(() => providersOverride ?? []);
   const [providersLoaded, setProvidersLoaded] = useState(() => Boolean(providersOverride));
-  const [step, setStep] = useState<Step>("pick");
-  const [provider, setProvider] = useState<ProviderKind | null>(null);
+  const [step, setStep] = useState<Step>(() => initialProvider ? "credentials" : "pick");
+  const [provider, setProvider] = useState<ProviderKind | null>(() => initialProvider ?? null);
   
   // Input fields
-  const [label, setLabel] = useState("");
+  const [label, setLabel] = useState(() => initialProvider ? defaultLabel(initialProvider) : "");
   const [apiKey, setApiKey] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   // Token masking toggle for sensitive textareas (Antigravity, Codex)
@@ -265,11 +270,6 @@ export function AddAccountWizard({
                       <span className="rounded border border-[var(--border)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]">
                         {CONNECTION_INFO[p.kind].method}
                       </span>
-                      {CONNECTION_INFO[p.kind].experimental && (
-                        <span className="rounded border border-amber-500/30 px-1.5 py-0.5 text-[10px] text-amber-400">
-                          Experimental
-                        </span>
-                      )}
                     </span>
                   </span>
                 </button>
@@ -399,12 +399,16 @@ function CredentialInstructions({
     return (
       <div className="space-y-3">
         <div className={`${instructionPanelClass} space-y-1.5`}>
-          <p className={instructionTitleClass}>Experimental connection</p>
-          <p>Paste the connection details for this account. Add each account separately; this provider may occasionally ask you to reconnect.</p>
+          <p className={instructionTitleClass}>Connect Antigravity</p>
+          <ol className="list-decimal list-inside space-y-1 pl-1">
+            <li>Open Antigravity and sign in to the Google account you want to track.</li>
+            <li>Use the Antigravity connector export for that account.</li>
+            <li>Paste the full JSON here. Each pasted connection counts as one Antigravity account.</li>
+          </ol>
           <div className="mt-2 flex items-start gap-1 border-t border-[var(--border)] pt-1.5 text-[10px] leading-normal text-amber-400">
             <FiAlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>
-              Do not copy another application's client secret. This is not a provider-supported universal Google sign-in flow.
+              Only paste connection details generated for this account. A generic Google client secret from another app will not work reliably.
             </span>
           </div>
         </div>
@@ -505,10 +509,10 @@ function ConnectionSummary({ provider }: { provider: ProviderKind }) {
     <div className={instructionPanelClass}>
       <p className={instructionTitleClass}>Keeping accounts separate</p>
       <p className="mt-1">{info.accountCopy}</p>
-      {info.experimental && (
+      {info.renewalNote && (
         <p className="mt-2 flex items-start gap-1 border-t border-[var(--border)] pt-1.5 text-amber-400">
           <FiAlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          <span>This provider controls when a connection expires or needs to be renewed.</span>
+          <span>{info.renewalNote}</span>
         </p>
       )}
     </div>
@@ -541,7 +545,12 @@ function CodexProfileSetup({
       <div className="space-y-3">
         <div className={`${instructionPanelClass} space-y-1.5`}>
           <p className={instructionTitleClass}>Add a Codex account</p>
-          <p>Open the normal Codex sign-in for this account. Existing Codex accounts will not be changed.</p>
+          <ol className="list-decimal list-inside space-y-1 pl-1">
+            <li>Click <span className="font-semibold text-[var(--text)]">Open Codex Sign-in</span>.</li>
+            <li>Sign in with the ChatGPT/Codex account you want to track.</li>
+            <li>Return here and click <span className="font-semibold text-[var(--text)]">I Finished Signing In</span>.</li>
+          </ol>
+          <p>Existing Codex accounts will not be changed.</p>
         </div>
         {error && <p className="text-xs text-red-400">{error}</p>}
         <button type="button" onClick={startSignIn} disabled={isPreparing} className="btn-primary">

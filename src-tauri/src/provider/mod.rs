@@ -274,7 +274,7 @@ pub mod registry {
             ProviderDescriptor {
                 kind: ProviderKind::Antigravity,
                 display_name: "Antigravity".into(),
-                credential_description: "Add a separate Antigravity account (experimental).".into(),
+                credential_description: "Add one Antigravity account per connector export.".into(),
             },
             ProviderDescriptor {
                 kind: ProviderKind::Codex,

@@ -15,7 +15,7 @@ the CLI needs access to it. Treat every Codex `auth.json` as a password.
 | Provider | What you see | How it is read |
 | --- | --- | --- |
 | Codex / ChatGPT | 5-hour and weekly usage windows with reset countdowns | Read-only access-token lookup from an isolated Codex profile |
-| Gemini / Antigravity OAuth | Per-model quota with reset details | Experimental direct Cloud Code OAuth behavior |
+| Gemini / Antigravity OAuth | Per-model quota with reset details | Direct Antigravity connector path; one account per connector export |
 | DeepSeek | Account balance and estimated usage | DeepSeek API credentials |
 | Z.ai | Quota-style usage where available | Z.ai API credentials |
 | OpenRouter | Remaining credits and all-time key/account spend | OpenRouter `/credits` and `/key` APIs |
@@ -46,10 +46,10 @@ unchanged. TokenMaxxer stores only the account connection; it never copies or
 refreshes the Codex refresh token. Reconnect only the affected account if Codex
 or OpenAI invalidates its session.
 
-Antigravity remains an experimental direct integration. Add each authorised
-credential as a separate account, but provider-side token expiry or revocation
-can still require reconnecting that account. TokenMaxxer does not provide a
-universal Google sign-in flow or promise to preserve unsupported IDE sessions.
+Antigravity uses a direct connector path. Each connector export represents one
+Antigravity account, so add another account separately if you use more than one.
+Provider-side token expiry or revocation can still require reconnecting that
+account. TokenMaxxer does not provide a universal Google sign-in flow.
 
 ## Prerequisites
 
@@ -304,8 +304,8 @@ Windows continues to store credentials in the DPAPI-encrypted `vault.enc` file.
 Early non-Windows builds that wrote plaintext `vault.enc` are migrated into the
 native keyring on first load and the plaintext file is removed.
 
-For experimental Antigravity tracking, provide an authorised credential JSON
-object created through a provider-approved flow:
+For Antigravity tracking, provide an authorised connector JSON object created
+for the Antigravity account you want to track:
 
 ```json
 {
@@ -316,9 +316,8 @@ object created through a provider-approved flow:
 ```
 
 `email` is optional and used only for display purposes in the account card.
-`client_secret` must belong to an OAuth client you are authorised to use; do
-not copy it from another application or treat the integration as a substitute
-for a provider-supported OAuth connection.
+`client_secret` must belong to the connector details you are authorised to use
+for that account; do not copy a generic client secret from another application.
 
 ## Repository Hygiene
 

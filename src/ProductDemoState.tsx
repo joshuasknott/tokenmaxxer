@@ -1,6 +1,6 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { FiCheckCircle, FiDownload, FiPlus, FiRefreshCw, FiSettings } from "react-icons/fi";
-import type { AccountConfig, ProviderDescriptor, Snapshot, UsageEvent } from "./types";
+import type { AccountConfig, ProviderDescriptor, ProviderKind, Snapshot, UsageEvent } from "./types";
 import { AccountCard } from "./components/AccountCard";
 import { AccountDetailsModal } from "./components/AccountDetailsModal";
 import { AddAccountWizard } from "./components/AddAccountWizard";
@@ -14,6 +14,7 @@ const productAccounts: AccountConfig[] = [
   { id: "codex-personal", label: "maya.chen@example.com", provider: "codex", authRef: "vault_codex" },
   { id: "antigravity-work", label: "liam.patel@example.com", provider: "antigravity", authRef: "vault_antigravity" },
   { id: "deepseek-key", label: "DeepSeek production key", provider: "deepseek", authRef: "vault_deepseek" },
+  { id: "zai-coding", label: "Z.ai coding plan key", provider: "z_ai", authRef: "vault_zai" },
   { id: "openrouter-credits", label: "OpenRouter routing key", provider: "openrouter", authRef: "vault_openrouter" },
   { id: "openai-org", label: "OpenAI platform org", provider: "openai_api", authRef: "vault_openai" },
   { id: "anthropic-org", label: "Anthropic platform org", provider: "anthropic_api", authRef: "vault_anthropic" },
@@ -35,7 +36,7 @@ const productProviders: ProviderDescriptor[] = [
   {
     kind: "antigravity",
     displayName: "Google Antigravity",
-    credentialDescription: "Add a separate Antigravity account (experimental).",
+    credentialDescription: "Add one Antigravity account per connector export.",
   },
   {
     kind: "deepseek",
@@ -181,6 +182,23 @@ const productSnapshots: Record<string, Snapshot> = {
       tokensUsed: 48000,
       tokenBudget: 100000,
       ratePerMtuGbp: 20,
+    },
+    isStale: false,
+    error: null,
+  },
+  "zai-coding": {
+    accountId: "zai-coding",
+    timestamp: Date.now() - 144000,
+    planName: "GLM Coding Plan",
+    accountDetail: "Coding plan key",
+    providerKind: "z_ai",
+    balanceGbp: 24.76,
+    windows: [],
+    cost: {
+      estimatedGbp: 2.18,
+      tokensUsed: 132000,
+      tokenBudget: 0,
+      ratePerMtuGbp: 16.52,
     },
     isStale: false,
     error: null,
@@ -402,21 +420,30 @@ export function ProductEmptyState() {
   return <ProductDashboardFrame accounts={[]} snapshots={{}} />;
 }
 
-export function ProductAddAccountState() {
+export function ProductAddAccountState({
+  initialProvider,
+}: {
+  initialProvider?: ProviderKind;
+} = {}) {
   return (
     <ProductDashboardFrame>
       <AddAccountWizard
         onClose={() => undefined}
         onAdded={() => undefined}
+        initialProvider={initialProvider}
         providersOverride={productProviders}
       />
     </ProductDashboardFrame>
   );
 }
 
-export function ProductAccountDetailsState() {
+export function ProductAccountDetailsState({
+  accountId = "openrouter-credits",
+}: {
+  accountId?: string;
+} = {}) {
   const events = useMemo(productEvents, []);
-  const account = productAccounts[1];
+  const account = productAccounts.find((item) => item.id === accountId) ?? productAccounts[0];
 
   return (
     <ProductDashboardFrame>

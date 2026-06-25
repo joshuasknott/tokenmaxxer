@@ -19,7 +19,7 @@
     "release:macos": "tauri build --target universal-apple-darwin --bundles app,dmg --ci",
     "release:linux": "tauri build --bundles appimage,deb --ci",
     "changelog:update": "node scripts/generate-changelog.mjs",
-    "render:product-shot": "tailwindcss -i ./src/index.css -o ./remotion/remotion.css && remotion still remotion/index.tsx TokenMaxxerProductShot public/tokenmaxxer-product-shot.png --overwrite && remotion still remotion/index.tsx TokenMaxxerAddAccountShot public/tokenmaxxer-add-account-shot.png --overwrite && remotion still remotion/index.tsx TokenMaxxerAccountDetailsShot public/tokenmaxxer-account-details-shot.png --overwrite",
+    "render:product-shot": "tailwindcss -i ./src/index.css -o ./remotion/remotion.css && remotion still remotion/index.tsx TokenMaxxerProductShot public/tokenmaxxer-product-shot.png --overwrite && remotion still remotion/index.tsx TokenMaxxerAddAccountShot public/tokenmaxxer-add-account-shot.png --overwrite && remotion still remotion/index.tsx TokenMaxxerAccountDetailsShot public/tokenmaxxer-account-details-shot.png --overwrite && remotion still remotion/index.tsx TokenMaxxerOpenRouterSetupShot public/tokenmaxxer-openrouter-setup-shot.png --overwrite",
     "render:hero-demo": "tailwindcss -i ./src/index.css -o ./remotion/remotion.css && remotion render remotion/index.tsx TokenMaxxerHeroDemo public/tokenmaxxer-demo.mp4 --overwrite",
     "lint": "eslint src eslint.config.js"
   },

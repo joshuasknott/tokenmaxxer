@@ -142,7 +142,7 @@
       }
 
       .shot-add,
-      .shot-details {
+      .shot-openrouter {
         opacity: 0;
       }
 
@@ -244,7 +244,12 @@
           <div class="product-frame">
             <img class="shot shot-dashboard" src="assets/tokenmaxxer-product-shot.png" alt="" />
             <img class="shot shot-add" src="assets/tokenmaxxer-add-account-shot.png" alt="" />
-            <img class="shot shot-details" src="assets/tokenmaxxer-account-details-shot.png" alt="" />
+            <img
+              class="shot shot-openrouter"
+              src="assets/tokenmaxxer-openrouter-setup-shot.png"
+              alt=""
+              data-layout-allow-overflow
+            />
             <div class="click-ring" data-layout-ignore></div>
             <div class="cursor" data-layout-ignore></div>
           </div>
@@ -253,7 +258,7 @@
 
       <div class="status-line" data-layout-ignore>
         <span>Add account</span>
-        <span>Open details</span>
+        <span>Set up OpenRouter</span>
         <span>Check windows</span>
         <span>Local-first</span>
       </div>
@@ -283,13 +288,10 @@
       tl.fromTo(".click-ring", { left: "62%", top: "52%", opacity: 0.9, scale: 0.35 }, { opacity: 0, scale: 1.25, duration: 0.48, ease: "power2.out" }, 5.22);
       tl.to(".cursor", { scale: 0.82, duration: 0.12, ease: "power2.out" }, 5.24);
       tl.to(".cursor", { scale: 1, duration: 0.18, ease: "back.out(2)" }, 5.36);
+      tl.to(".shot-openrouter", { opacity: 1, duration: 0.72, ease: "power2.inOut" }, 5.52);
 
-      tl.to(".shot-add", { opacity: 0, duration: 0.58, ease: "power2.inOut" }, 6.15);
-      tl.to(".cursor", { left: "65%", top: "43%", duration: 0.86, ease: "power3.inOut" }, 6.55);
-      tl.fromTo(".click-ring", { left: "65%", top: "43%", opacity: 0.9, scale: 0.35 }, { opacity: 0, scale: 1.25, duration: 0.48, ease: "power2.out" }, 7.38);
-      tl.to(".shot-details", { opacity: 1, duration: 0.72, ease: "power2.inOut" }, 7.54);
-      tl.to(".cursor", { left: "79%", top: "35%", duration: 0.7, ease: "power3.inOut" }, 8.25);
-      tl.to(".shot-details", { scale: 1.018, duration: 2.2, ease: "sine.inOut" }, 8.05);
+      tl.to(".cursor", { left: "79%", top: "35%", duration: 0.7, ease: "power3.inOut" }, 7.25);
+      tl.to(".shot-openrouter", { scale: 1.018, duration: 2.2, ease: "sine.inOut" }, 7.05);
       tl.to(".brand-stage", { y: -18, opacity: 0.95, duration: 1.2, ease: "power2.inOut" }, 10.35);
       tl.to(".product-frame", { scale: 1, rotationY: 0, duration: 1.05, ease: "power2.inOut" }, 10.5);
 

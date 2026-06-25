@@ -2,21 +2,16 @@ import { useState, type ReactNode } from "react";
 import type { IconType } from "react-icons";
 import { FaApple, FaGithub, FaLinux, FaWindows } from "react-icons/fa";
 import {
-  FiActivity,
   FiArrowRight,
-  FiBarChart2,
   FiClock,
-  FiCpu,
-  FiDatabase,
   FiHardDrive,
-  FiKey,
   FiLock,
-  FiRefreshCw,
-  FiShield,
 } from "react-icons/fi";
 import { TbChevronDown, TbDownload, TbExternalLink } from "react-icons/tb";
 import { LogoMark } from "./components/Logo";
+import { ProviderLogo } from "./components/ProviderLogo";
 import changelog from "./generated/changelog";
+import type { ProviderKind } from "./types";
 
 const SOURCE_URL = "https://github.com/joshuasknott/tokenmaxxer";
 const LATEST_DOWNLOAD_URL = `${SOURCE_URL}/releases/latest/download`;
@@ -39,30 +34,28 @@ type PlatformOption = {
 };
 
 type ProductStory = {
+  step: string;
   title: string;
   copy: string;
   image: string;
   alt: string;
-  align: "left" | "right";
-  points: string[];
+  caption: string;
 };
 
-type Feature = {
-  title: string;
+type TrackingRow = {
+  label: string;
   copy: string;
-  Icon: IconType;
-};
-
-type WorkflowStep = {
-  step: string;
-  title: string;
-  copy: string;
-  signal: string;
 };
 
 type LegalSection = {
   heading: string;
   body: ReactNode;
+};
+
+type ProviderCoverage = {
+  kind: ProviderKind;
+  name: string;
+  copy: string;
 };
 
 const platformOptions: PlatformOption[] = [
@@ -89,84 +82,127 @@ const platformOptions: PlatformOption[] = [
   },
 ];
 
+const providerCoverage: ProviderCoverage[] = [
+  {
+    kind: "codex",
+    name: "Codex / ChatGPT",
+    copy: "Quota windows, reset countdowns, plan context, and account identity.",
+  },
+  {
+    kind: "antigravity",
+    name: "Google Antigravity",
+    copy: "Gemini, Claude, and GPT model-window usage from connector exports.",
+  },
+  {
+    kind: "deepseek",
+    name: "DeepSeek API",
+    copy: "API key balance and usage snapshots.",
+  },
+  {
+    kind: "z_ai",
+    name: "Z.ai",
+    copy: "GLM coding plan key usage and balance checks.",
+  },
+  {
+    kind: "openrouter",
+    name: "OpenRouter",
+    copy: "Credit balance, key limit, and usage data.",
+  },
+  {
+    kind: "openai_api",
+    name: "OpenAI API",
+    copy: "Organization usage and cost reports from admin access.",
+  },
+  {
+    kind: "anthropic_api",
+    name: "Anthropic API",
+    copy: "Organization usage and cost reports from admin access.",
+  },
+  {
+    kind: "claude_code",
+    name: "Claude Code",
+    copy: "Team analytics from Anthropic organization reporting.",
+  },
+  {
+    kind: "cursor",
+    name: "Cursor Teams",
+    copy: "Team usage events and spend from admin API access.",
+  },
+  {
+    kind: "contextual_ai",
+    name: "Contextual AI",
+    copy: "Tenant balance and current-month usage.",
+  },
+  {
+    kind: "x_ai",
+    name: "xAI / Grok",
+    copy: "Team billing through the xAI Management API.",
+  },
+  {
+    kind: "aws_bedrock",
+    name: "Amazon Bedrock",
+    copy: "Bedrock token metrics from CloudWatch.",
+  },
+  {
+    kind: "azure_openai",
+    name: "Azure OpenAI",
+    copy: "Token totals from Azure Monitor metrics.",
+  },
+  {
+    kind: "fireworks",
+    name: "Fireworks AI",
+    copy: "Billing metrics imported from Fireworks exports.",
+  },
+];
+
+const providerCount = providerCoverage.length;
+
 const productStories: ProductStory[] = [
   {
-    title: "A real quota board before the next run",
-    copy: "Provider limits, reset countdowns, balances, estimated spend, and token history stay visible in one local dashboard.",
+    step: "Dashboard",
+    title: "Compare every configured account before you start.",
+    copy: `The main board shows provider accounts, quota windows, reset countdowns, credits, estimated spend, token totals, refresh state, and the global trend. The demo data includes all ${providerCount} supported provider surfaces, so the account count and provider mix reflect the current app.`,
     image: PRODUCT_SHOT_URL,
     alt: "TokenMaxxer dashboard showing provider cards, quota reset windows, provider mix, and global usage trend.",
-    align: "right",
-    points: ["Provider mix", "Reset countdowns", "Usage trend", "Local history"],
+    caption:
+      "The dashboard is the decision screen: it shows which accounts still have quota or balance before a long AI run.",
   },
   {
-    title: "Account setup that validates before saving",
-    copy: "Choose the provider, paste the credential shape it expects, and keep it in the operating system vault.",
+    step: "Add Account",
+    title: "Pick a provider and validate the credential before saving.",
+    copy: "The Add Account flow lists every supported provider. After you choose one, TokenMaxxer asks for the credential format that provider needs, validates the provider response, and stores the secret in the operating system vault.",
     image: ADD_ACCOUNT_SHOT_URL,
     alt: "TokenMaxxer add account flow with provider selection and credential validation.",
-    align: "left",
-    points: ["14 providers", "Admin APIs", "Cloud metrics", "Local vault"],
+    caption:
+      "The provider picker is where users can see Codex, Antigravity, API key providers, admin-report providers, and cloud metric providers in one place.",
   },
   {
-    title: "Details when the card is not enough",
-    copy: "Open any account for model breakdowns, reset timestamps, balance context, and the usage history behind a decision.",
+    step: "Account Details",
+    title: "Open one account when you need the underlying history.",
+    copy: "Account details show the quota windows behind a card, model and vendor breakdowns when a provider reports them, exact reset timestamps, and the usage history for that account.",
     image: ACCOUNT_DETAILS_SHOT_URL,
     alt: "TokenMaxxer account detail modal showing quota windows, model breakdown, and historical usage chart.",
-    align: "right",
-    points: ["Model breakdowns", "Reset timestamps", "Historical usage"],
+    caption:
+      "The detail view explains why a card looks available, stale, expensive, or close to reset.",
   },
 ];
 
-const workflowSteps: WorkflowStep[] = [
+const trackingRows: TrackingRow[] = [
   {
-    step: "01",
-    title: "Add provider credentials",
-    copy: "TokenMaxxer checks the provider response before an account enters your local board.",
-    signal: "Validated locally",
+    label: "Quota windows and resets",
+    copy: "For providers that expose subscription windows, TokenMaxxer shows the percentage available and the next reset time.",
   },
   {
-    step: "02",
-    title: "Refresh the board",
-    copy: "Pull the latest quota windows for one account or the full list when a session is about to start.",
-    signal: "Manual control",
+    label: "Balances, credits, tokens, and spend",
+    copy: "For API, admin, cloud, and import-based providers, the board records balances, token totals, and estimated costs when those fields are available.",
   },
   {
-    step: "03",
-    title: "Pick the account with room",
-    copy: "Compare reset times, available quota, balance, spend, and token history without opening a stack of provider dashboards.",
-    signal: "Decision ready",
-  },
-];
-
-const features: Feature[] = [
-  {
-    title: "Secure local vault",
-    copy: "Credentials stay in DPAPI, macOS Keychain, or Linux Secret Service where available.",
-    Icon: FiShield,
+    label: "Refresh health",
+    copy: "Each account shows whether the latest fetch is fresh, stale, failed, or using cached data, so you know when a number needs attention.",
   },
   {
-    title: "Provider adapters",
-    copy: "14 provider surfaces normalize quota, balance, cloud metric, and admin usage data into one interface.",
-    Icon: FiCpu,
-  },
-  {
-    title: "Refresh controls",
-    copy: "Refresh one account or the full board and see new snapshots immediately.",
-    Icon: FiRefreshCw,
-  },
-  {
-    title: "Trend context",
-    copy: "Switch day, week, month, year, or all-time views for spend and tokens.",
-    Icon: FiBarChart2,
-  },
-  {
-    title: "Local history",
-    copy: "Spend, tokens, balances, and resets stay on your machine.",
-    Icon: FiDatabase,
-  },
-  {
-    title: "Signed releases",
-    copy: "Windows, macOS, and Linux builds use stable GitHub release asset names.",
-    Icon: TbDownload,
+    label: "Local usage history",
+    copy: "Snapshots and usage events stay on this machine and power the day, week, month, year, and all-time views.",
   },
 ];
 
@@ -185,11 +221,12 @@ export function MarketingPage() {
       <section className="marketing-hero" aria-labelledby="hero-title">
         <div className="hero-shell">
           <div className="hero-copy">
-            <h1 id="hero-title">Know which LLM account still has room.</h1>
+            <h1 id="hero-title">See which AI account has quota left.</h1>
             <p>
-              TokenMaxxer is a local desktop quota board for subscriptions,
-              API keys, admin reports, and cloud AI usage. Check reset windows,
-              balance, tokens, and estimated spend before the next long run.
+              TokenMaxxer is a local desktop app for tracking AI provider
+              limits. It reads the accounts you configure and shows reset
+              windows, balances, token use, estimated spend, refresh state, and
+              usage history in one board.
             </p>
             <div className="hero-actions" aria-label="Primary actions">
               <a className="hero-primary-action" href="#download">
@@ -210,15 +247,15 @@ export function MarketingPage() {
             <div className="hero-proof-grid" aria-label="Product guarantees">
               <span>
                 <FiLock aria-hidden="true" />
-                No hosted account
+                No TokenMaxxer account
               </span>
               <span>
                 <FiHardDrive aria-hidden="true" />
-                Local history
+                Local credential vault
               </span>
               <span>
                 <FiClock aria-hidden="true" />
-                Reset windows
+                {providerCount} provider surfaces
               </span>
             </div>
           </div>
@@ -227,59 +264,72 @@ export function MarketingPage() {
         </div>
       </section>
 
-      <section className="signal-strip" aria-label="TokenMaxxer product signals">
-        <span>Private desktop app</span>
-        <span>Multi-provider adapters</span>
-        <span>Manual refresh loop</span>
-        <span>Signed release channel</span>
-      </section>
-
       <section id="product" className="marketing-section product-overview">
         <div className="section-heading">
-          <h2>Built around the quota decision.</h2>
+          <h2>How the product works.</h2>
           <p>
-            Compare accounts, inspect reset windows, and decide where the next
-            session should run without opening a stack of provider dashboards.
+            TokenMaxxer has one main job: help you decide which AI account can
+            handle the next run. The screenshots below are rendered from the
+            same React product screens used by the app demo.
           </p>
         </div>
 
         <div className="product-story-stack" aria-label="TokenMaxxer product walkthrough">
           {productStories.map((story) => (
-            <article className={`product-story product-story-${story.align}`} key={story.title}>
+            <article className="product-story" key={story.title}>
               <div className="product-story-copy">
+                <span>{story.step}</span>
                 <h3>{story.title}</h3>
                 <p>{story.copy}</p>
-                <ul>
-                  {story.points.map((point) => (
-                    <li key={point}>{point}</li>
-                  ))}
-                </ul>
               </div>
               <figure className="product-story-media">
                 <img alt={story.alt} src={story.image} />
+                <figcaption>{story.caption}</figcaption>
               </figure>
             </article>
           ))}
         </div>
       </section>
 
-      <section id="workflow" className="marketing-section workflow-section">
+      <section id="tracks" className="marketing-section tracking-section">
         <div className="section-heading">
-          <h2>A short loop, not another dashboard habit.</h2>
+          <h2>What TokenMaxxer tracks.</h2>
           <p>
-            Add the accounts once, refresh when you need the truth, then pick
-            the provider with the least friction for the work ahead.
+            Providers expose different kinds of quota and billing data.
+            TokenMaxxer normalizes those fields into the same local interface
+            instead of sending you to a separate dashboard for each account.
           </p>
         </div>
 
-        <div className="workflow-rail">
-          {workflowSteps.map((item) => (
-            <article className="workflow-step" key={item.step}>
-              <span className="workflow-index">{item.step}</span>
+        <div className="tracking-list">
+          {trackingRows.map((row) => (
+            <article className="tracking-row" key={row.label}>
+              <h3>{row.label}</h3>
+              <p>{row.copy}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section id="providers" className="marketing-section provider-section">
+        <div className="section-heading">
+          <h2>Supported providers.</h2>
+          <p>
+            TokenMaxxer currently supports {providerCount} provider surfaces
+            across subscriptions, API keys, admin reports, cloud metrics, and
+            imported usage exports.
+          </p>
+        </div>
+
+        <div className="provider-list" aria-label="Supported TokenMaxxer providers">
+          {providerCoverage.map((provider) => (
+            <article className="provider-row" key={provider.kind}>
+              <span className="provider-row-logo">
+                <ProviderLogo kind={provider.kind} className="h-5 w-5" />
+              </span>
               <div>
-                <strong>{item.signal}</strong>
-                <h3>{item.title}</h3>
-                <p>{item.copy}</p>
+                <h3>{provider.name}</h3>
+                <p>{provider.copy}</p>
               </div>
             </article>
           ))}
@@ -289,11 +339,11 @@ export function MarketingPage() {
       <section id="security" className="marketing-section security-section">
         <div className="security-layout">
           <div className="security-copy">
-            <h2>Local-first by default.</h2>
+            <h2>Your data stays on this machine.</h2>
             <p>
-              TokenMaxxer reads provider quota APIs from your machine. It has no
-              hosted account, analytics pipeline, or cloud dashboard to sign in
-              to.
+              TokenMaxxer contacts provider APIs directly from your desktop. It
+              has no hosted TokenMaxxer account, analytics pipeline, or cloud
+              dashboard to sign in to.
             </p>
             <a href={PRIVACY_URL}>
               Read privacy details
@@ -312,30 +362,6 @@ export function MarketingPage() {
         </div>
       </section>
 
-      <section className="marketing-section features-section">
-        <div className="section-heading">
-          <h2>Details that make it feel engineered.</h2>
-          <p>
-            The interface is built for repeated use: clear state, predictable
-            controls, local storage, and release assets that are easy to find.
-          </p>
-        </div>
-
-        <div className="feature-grid">
-          {features.map((feature) => (
-            <article className="feature-row" key={feature.title}>
-              <span>
-                <feature.Icon aria-hidden="true" />
-              </span>
-              <div>
-                <h3>{feature.title}</h3>
-                <p>{feature.copy}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
       <DownloadSection />
 
       <MarketingFooter />
@@ -347,7 +373,7 @@ function HeroProductVideo() {
   const [videoFailed, setVideoFailed] = useState(false);
 
   return (
-    <figure className="hero-product-video" aria-label="TokenMaxxer product video preview">
+    <figure className="hero-product-video" aria-label="TokenMaxxer product walkthrough video preview">
       <div className="demo-window-bar">
         <span aria-hidden="true" />
         <span aria-hidden="true" />
@@ -382,21 +408,11 @@ function HeroProductVideo() {
             src={PRODUCT_DEMO_URL}
           />
         )}
-        <div className="hero-video-footer">
-          <span>
-            <FiActivity aria-hidden="true" />
-            Live quota board
-          </span>
-          <span>
-            <FiKey aria-hidden="true" />
-            Add account flow
-          </span>
-          <span>
-            <FiBarChart2 aria-hidden="true" />
-            Usage details
-          </span>
-        </div>
       </div>
+      <figcaption>
+        The loop shows the dashboard, the Add Account provider picker, and an
+        account detail view.
+      </figcaption>
     </figure>
   );
 }
@@ -710,9 +726,9 @@ function DownloadSection() {
         <div className="download-panel-copy">
           <h2>Download the desktop build.</h2>
           <p>
-            Pick the release asset for your OS. TokenMaxxer runs locally, stores
-            credentials locally, and points every package link at the stable
-            GitHub release channel.
+            Pick the release asset for your OS. TokenMaxxer runs locally, keeps
+            credentials in local secure storage, and uses the GitHub release
+            channel for desktop packages.
           </p>
         </div>
 
@@ -755,7 +771,8 @@ function SiteNav() {
 
       <nav className="nav-links" aria-label="Marketing links">
         <a href="/#product">Product</a>
-        <a href="/#workflow">Workflow</a>
+        <a href="/#tracks">Tracking</a>
+        <a href="/#providers">Providers</a>
         <a href="/#security">Security</a>
         <a href={CHANGELOG_URL}>Changelog</a>
         <a href={SOURCE_URL} rel="noreferrer" target="_blank">
@@ -804,15 +821,15 @@ function MarketingFooter() {
             <span>TokenMaxxer</span>
           </a>
           <p className="footer-tagline">
-            Local-first LLM quota tracking across subscriptions, API keys,
-            admin reports, and cloud AI usage.
+            Local-first AI quota tracking across subscriptions, API keys, admin
+            reports, cloud metrics, and imported usage exports.
           </p>
         </div>
 
         <nav className="footer-col" aria-label="Product">
           <h3>Product</h3>
-          <a href="/#product">Product UI</a>
-          <a href="/#workflow">Workflow</a>
+          <a href="/#product">Product walkthrough</a>
+          <a href="/#providers">Providers</a>
           <a href="/#download">Download</a>
           <a href={CHANGELOG_URL}>Changelog</a>
         </nav>

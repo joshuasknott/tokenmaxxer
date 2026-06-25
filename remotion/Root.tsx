@@ -19,17 +19,26 @@ import "./remotion.css";
 const easeOut = Easing.bezier(0.16, 1, 0.3, 1);
 const easeInOut = Easing.bezier(0.45, 0, 0.55, 1);
 
-function TokenMaxxerProductShot({ state }: { state: "dashboard" | "add" | "details" }) {
-  const Component =
-    state === "add"
-      ? ProductAddAccountState
-      : state === "details"
-        ? ProductAccountDetailsState
-        : ProductDashboardState;
+function TokenMaxxerProductShot({
+  state,
+}: {
+  state: "dashboard" | "add" | "openrouter-setup" | "details";
+}) {
+  let content: ReactNode;
+
+  if (state === "add") {
+    content = <ProductAddAccountState />;
+  } else if (state === "openrouter-setup") {
+    content = <ProductAddAccountState initialProvider="openrouter" />;
+  } else if (state === "details") {
+    content = <ProductAccountDetailsState accountId="openrouter-credits" />;
+  } else {
+    content = <ProductDashboardState />;
+  }
 
   return (
     <AbsoluteFill style={{ backgroundColor: "#0b1117" }}>
-      <Component />
+      {content}
     </AbsoluteFill>
   );
 }
@@ -225,11 +234,11 @@ function TokenMaxxerHeroDemo() {
         <ProductScene from={3 * fps} to={6.25 * fps}>
           <ProductDashboardState />
         </ProductScene>
-        <ProductScene from={5.15 * fps} to={9.05 * fps}>
+        <ProductScene from={5.15 * fps} to={8.65 * fps}>
           <ProductAddAccountState />
         </ProductScene>
-        <ProductScene from={8.75 * fps} to={12 * fps}>
-          <ProductAccountDetailsState />
+        <ProductScene from={8.35 * fps} to={12 * fps}>
+          <ProductAddAccountState initialProvider="openrouter" />
         </ProductScene>
       </AbsoluteFill>
       <HeroCursor />
@@ -263,6 +272,12 @@ export function RemotionRoot() {
       <Still
         id="TokenMaxxerAccountDetailsShot"
         component={() => <TokenMaxxerProductShot state="details" />}
+        width={1280}
+        height={1060}
+      />
+      <Still
+        id="TokenMaxxerOpenRouterSetupShot"
+        component={() => <TokenMaxxerProductShot state="openrouter-setup" />}
         width={1280}
         height={1060}
       />

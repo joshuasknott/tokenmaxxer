@@ -215,12 +215,17 @@ pub struct CodexProfileSession {
 
 #[cfg(windows)]
 fn launch_codex_login(profile_dir: &std::path::Path) -> Result<(), String> {
-    let command = format!(
-        "set \"CODEX_HOME={}\" && codex login",
-        profile_dir.display()
+    let script_path = profile_dir.join("codex-login.cmd");
+    let script = format!(
+        "@echo off\r\nset \"CODEX_HOME={}\"\r\ncodex login\r\n",
+        profile_dir.display(),
     );
+    std::fs::write(&script_path, script)
+        .map_err(|e| format!("Could not prepare Codex sign-in: {e}"))?;
+
     std::process::Command::new("cmd")
-        .args(["/C", "start", "", "cmd", "/K", &command])
+        .args(["/C", "start", "TokenMaxxer Codex Sign-in", "cmd", "/K"])
+        .arg(&script_path)
         .spawn()
         .map_err(|e| format!("Could not open Codex sign-in: {e}"))?;
     Ok(())
