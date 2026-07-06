@@ -1,9 +1,9 @@
 {
   "name": "tokenmaxxer",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.1.0",
   "type": "module",
-  "description": "Provider-agnostic desktop usage tracker for LLM subscriptions (Codex, Gemini/Antigravity, ...).",
+  "description": "Local-first public preview for tracking LLM subscription and API usage.",
   "license": "MIT",
   "scripts": {
     "dev": "vite",

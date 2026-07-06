@@ -1,14 +1,15 @@
 # TokenMaxxer
 
-TokenMaxxer is a local-first app for tracking LLM subscription usage
-windows across multiple accounts and providers. It shows current usage,
-reset times, per-model quota details where available, and estimated spend.
+TokenMaxxer is a local-first desktop app for tracking LLM subscription and API
+usage across multiple accounts and providers. It shows current usage, reset
+times, provider-reported balances, token totals, estimated spend, refresh
+health, and local usage history in one board.
 
-The app runs on Windows, macOS, and Linux desktops. API and OAuth credentials
-are stored locally in the operating system's native secure storage (Windows
-DPAPI, macOS Keychain, or Linux Secret Service). Codex profiles are an
-exception: Codex owns the login cache in an isolated local `CODEX_HOME` because
-the CLI needs access to it. Treat every Codex `auth.json` as a password.
+This repository is preparing a public open-source preview release. The preview
+is intentionally `v0.1.0`: useful for developers and early users, but not a
+paid, signed, notarized, or app-store-style commercial release.
+
+![TokenMaxxer dashboard](public/tokenmaxxer-product-shot.png)
 
 ## What It Tracks
 
@@ -29,29 +30,65 @@ the CLI needs access to it. Treat every Codex `auth.json` as a password.
 | Azure OpenAI / AI Foundry | Prompt/generated token totals | Azure Monitor metrics for the resource id |
 | Fireworks AI | Prompt/completion token totals | Fireworks `firectl billing export-metrics` CSV |
 
-The app does not synthesize provider usage for services that lack a reliable
-official or directly verified usage, quota, or balance API. Gemini API-key-only,
-Mistral, Together, and personal/editor-only tools without billing endpoints
-remain documented backlog candidates until their public API surfaces expose
-enough data for a truthful snapshot.
+TokenMaxxer does not synthesize provider usage for services that lack a
+reliable official or directly verified usage, quota, or balance API. Gemini
+API-key-only, Mistral, Together, and personal/editor-only tools without billing
+endpoints remain documented backlog candidates until their public API surfaces
+expose enough data for a truthful snapshot.
 
-## Multiple Accounts
+## Privacy Model
 
-Every account is an independent local record, so you can add multiple API keys
-for providers such as DeepSeek and Z.ai without one replacing another.
+TokenMaxxer has no hosted account, telemetry service, analytics pipeline, or
+cloud dashboard. It contacts provider APIs directly from your desktop.
 
-On Windows, Codex accounts use **Open Codex Sign-in** in the app. It opens the
-normal Codex sign-in for that one account and keeps existing Codex accounts
-unchanged. TokenMaxxer stores only the account connection; it never copies or
-refreshes the Codex refresh token. Reconnect only the affected account if Codex
-or OpenAI invalidates its session.
+| Data | Where it lives |
+| --- | --- |
+| Provider credentials | OS secure storage where available: Windows DPAPI, macOS Keychain, or Linux Secret Service |
+| Codex profiles | An isolated local `CODEX_HOME` profile per Codex account, because the Codex CLI owns its login cache |
+| Account labels and provider config | Local `config.json` under the per-user app data directory |
+| Usage history | Local `history.json` under the per-user app data directory |
 
-Antigravity uses a direct connector path. Each connector export represents one
-Antigravity account, so add another account separately if you use more than one.
-Provider-side token expiry or revocation can still require reconnecting that
-account. TokenMaxxer does not provide a universal Google sign-in flow.
+Treat every Codex `auth.json`, API key, OAuth token, cloud credential, or
+exported billing file as a secret. TokenMaxxer does not copy Codex refresh
+tokens into its own vault, but the isolated Codex profile is still sensitive.
 
-## Prerequisites
+## Known Limitations
+
+- Preview builds are unsigned community builds. Windows SmartScreen reputation
+  prompts and macOS Gatekeeper warnings are expected until a future signed
+  release has enough reputation.
+- The `v0.1.0` preview is not Apple-notarized and is not registered through an
+  app store. macOS users may need to approve the app manually in System
+  Settings after opening the DMG.
+- In-app automatic updates are preserved for future signed updater releases,
+  but unsigned preview builds should be updated manually from GitHub Releases.
+  Do not publish a `latest.json` updater manifest for unsigned artifacts.
+- Guided Codex sign-in is currently Windows-only. Codex tracking itself uses
+  isolated local profiles, and macOS/Linux guided setup needs a future launcher
+  path before it is pleasant.
+- Several providers rely on live billing, admin, quota, or direct-behavior API
+  surfaces that can change without notice. TokenMaxxer reports fetch failures
+  instead of inventing missing data.
+- Gemini API-key-only, Mistral, Together, and other services without a verified
+  usage/balance endpoint are deferred rather than approximated.
+
+## Install A Preview Build
+
+When a GitHub preview release exists, download the asset for your platform from
+the latest release:
+
+- Windows: `TokenMaxxer-Windows-x64-setup.exe`
+- macOS: `TokenMaxxer-macOS-universal.dmg`
+- Linux: `TokenMaxxer-Linux-x86_64.AppImage` or
+  `TokenMaxxer-Linux-x86_64.deb`
+
+These preview artifacts are expected to be unsigned. That means the operating
+system may ask you to confirm that you trust the downloaded app. If the direct
+download links on the marketing page return 404, open the
+[GitHub Releases page](https://github.com/joshuasknott/tokenmaxxer/releases)
+and choose the latest preview manually.
+
+## Prerequisites For Local Development
 
 1. Rust toolchain
 2. Node.js and pnpm
@@ -68,7 +105,13 @@ pnpm install
 pnpm tauri dev
 ```
 
-Build a distributable:
+Build the web frontend:
+
+```bash
+pnpm build
+```
+
+Build a local desktop bundle on the current operating system:
 
 ```bash
 pnpm tauri build
@@ -76,10 +119,10 @@ pnpm tauri build
 
 ## Release Packaging
 
-Tauri packaging must be produced on the target operating system. For quick
-unsigned local installers, use the `package:*` scripts. They disable platform
-code signing and updater artifacts so a contributor can test packaging without
-release credentials:
+Tauri packaging must be produced on the target operating system. For unsigned
+community preview installers, use the `package:*` scripts. They disable platform
+code signing and updater artifacts so contributors can test or publish preview
+packages without release credentials.
 
 | Platform | Command | Artifacts |
 | --- | --- | --- |
@@ -87,8 +130,16 @@ release credentials:
 | macOS | `pnpm package:macos` | `src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg` and `src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app` |
 | Linux | `pnpm package:linux` | `src-tauri/target/release/bundle/appimage/*.AppImage`, `src-tauri/target/release/bundle/deb/*.deb` |
 
-Production release scripts keep updater artifacts enabled and are intended for
-maintainers with signing material configured:
+The `Release packages` GitHub Actions workflow has three modes:
+
+- `workflow_dispatch`: unsigned dry packaging for all platforms.
+- `v0.*` tag push: unsigned public preview release assets. This path does not
+  generate or attach `latest.json` because Tauri updater artifacts must be
+  signed.
+- other `v*` tag push: strict signed production packaging using `release:*`.
+
+Future signed release scripts remain available for maintainers with signing
+material configured:
 
 | Platform | Command | Signing behavior |
 | --- | --- | --- |
@@ -104,65 +155,25 @@ The platform-specific Tauri config files are:
 - `src-tauri/tauri.linux.conf.json` for AppImage and `.deb` bundles
 - `src-tauri/tauri.dev.conf.json` for unsigned local package builds
 
-Local signing overrides can be kept in ignored files such as
-`src-tauri/tauri.windows.local.conf.json` and passed with `--config`.
+For the full checklist, including local preflight commands, preview publishing
+steps, future signing secrets, and expected assets, see
+[`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md).
 
-## Auto-Updates
+## Update Channel
 
-TokenMaxxer uses the official Tauri v2 updater plugin. The app checks:
+The app includes the official Tauri v2 updater plugin, but Tauri updater
+artifacts must be signed. For the `v0.1.0` public preview, prefer manual GitHub
+downloads and do not attach a `latest.json` updater manifest to the release.
+
+The committed `src-tauri/tauri.conf.json` contains only the public updater key.
+The matching private key must stay outside the repository and be stored as
+GitHub Actions secrets before publishing a signed updater release.
+
+When a future signed release is ready, the updater manifest is expected at:
 
 ```text
 https://github.com/joshuasknott/tokenmaxxer/releases/latest/download/latest.json
 ```
-
-Tauri updater artifacts must be signed. This cannot be disabled. The committed
-`src-tauri/tauri.conf.json` contains the public updater key only; the matching
-private key must stay outside the repository and be stored as GitHub Actions
-secrets before publishing a release.
-
-The maintainer-local keypair for the committed public key was generated outside
-the repository with:
-
-```bash
-pnpm tauri signer generate --ci -w ~/.tauri/tokenmaxxer.key
-```
-
-To rotate or recreate the updater identity, generate a new keypair on a trusted
-machine:
-
-```bash
-pnpm tauri signer generate --ci -w ~/.tauri/tokenmaxxer.key --password "choose-a-strong-password"
-```
-
-Then:
-
-1. Replace `src-tauri/tauri.conf.json` `plugins.updater.pubkey` with the
-   contents of `~/.tauri/tokenmaxxer.key.pub`.
-2. Store the private key content in the GitHub Actions
-   secret `TAURI_SIGNING_PRIVATE_KEY`.
-3. Store the password in `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. Leave it empty
-   only for a passwordless key.
-4. Do not commit the private key or password.
-
-When a `v*` tag is pushed, the `Release packages` workflow builds production
-release artifacts, signs Tauri updater packages, signs the Windows installer,
-signs and notarizes the macOS app and DMG, validates Linux `.deb` metadata,
-normalizes release asset names, and generates a Tauri-compatible `latest.json`.
-The manifest maps:
-
-- `windows-x86_64` to `TokenMaxxer-Windows-x64-setup.exe`
-- `darwin-x86_64` and `darwin-aarch64` to the same signed universal macOS
-  `TokenMaxxer-macOS-universal.app.tar.gz`
-- `linux-x86_64` to `TokenMaxxer-Linux-x86_64.AppImage`
-
-The settings panel in the desktop app checks that manifest, downloads an
-available update, installs it, and restarts the app after installation where
-the platform allows it. On Windows, Tauri exits the app during install.
-
-The `Release packages` GitHub Actions workflow can be started manually from
-Actions for an unsigned dry packaging run, or by pushing a release tag such as
-`v1.0.0` for a strict production build. Do not tag until the release is ready
-to publish and all required secrets are configured.
 
 Production tag builds require these GitHub Actions secrets:
 
@@ -174,36 +185,6 @@ Production tag builds require these GitHub Actions secrets:
   `APPLE_CERTIFICATE_PASSWORD`, `KEYCHAIN_PASSWORD`, `APPLE_API_KEY`,
   `APPLE_API_ISSUER`, `APPLE_API_PRIVATE_KEY_BASE64`
 
-The workflow builds Windows, macOS, and Linux artifacts on native hosted
-runners, uploads per-platform workflow artifacts, normalizes the public file
-names with `scripts/prepare-release-artifacts.mjs`, and attaches those files to
-the tag release.
-
-The macOS workflow installs both Apple Rust targets and uses
-`universal-apple-darwin`, so the generated `.app` and `.dmg` cover Intel and
-Apple Silicon Macs.
-
-Linux package builds use Ubuntu 22.04 in CI to keep the glibc baseline
-reasonable for current Debian-based desktop distributions. For local Linux
-release builds, install the same development packages listed in
-`.github/workflows/release-packages.yml` before running `pnpm release:linux`.
-
-The marketing site download buttons point directly at the stable
-`/releases/latest/download/...` asset URLs:
-
-- `TokenMaxxer-Windows-x64-setup.exe`
-- `TokenMaxxer-macOS-universal.dmg`
-- `TokenMaxxer-Linux-x86_64.AppImage`
-
-The site does not use GitHub Releases as the public changelog.
-
-For the full release checklist, including local preflight commands, required
-GitHub secrets, and expected release assets, see
-[`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md).
-
-For live provider credential smoke checks that do not write to the desktop
-vault, see [`docs/LIVE_PROVIDER_SMOKE.md`](docs/LIVE_PROVIDER_SMOKE.md).
-
 ## Changelog Automation
 
 The marketing changelog is first-party site content with simple, user-facing
@@ -214,12 +195,11 @@ release notes. `pnpm changelog:update` generates:
 - `src/generated/changelog.ts`
 
 Release notes are hand-curated in `changelog.source.json`, keyed by version
-(without the `v` prefix). The generator reads `package.json`, `v*` tags, and
-the curated notes, then writes a flat list of bullet points per tagged release.
-Only tagged releases appear - there is no "Next", unreleased, or package-version
-fallback section. The `predev` and `prebuild` scripts run the generator
-automatically, so keep the curated `1.0.0` entry in `changelog.source.json`
-ready before pushing the `v1.0.0` tag.
+without the `v` prefix. The generator reads `package.json`, `v*` tags, and the
+curated notes, then writes a flat list of bullet points per tagged release.
+Only tagged releases appear; there is no "Next", unreleased, or package-version
+fallback section. Keep the curated `0.1.0` entry ready before publishing the
+`v0.1.0` preview tag.
 
 ## Secure Storage Verification
 
@@ -238,10 +218,8 @@ cd src-tauri
 TOKENMAXXER_RUN_NATIVE_KEYRING_TESTS=1 cargo test native_keyring_round_trips_when_enabled
 ```
 
-## License
-
-TokenMaxxer is released under the MIT License. See [LICENSE](LICENSE) for
-details.
+For live provider credential smoke checks that do not write to the desktop
+vault, see [`docs/LIVE_PROVIDER_SMOKE.md`](docs/LIVE_PROVIDER_SMOKE.md).
 
 ## Credentials
 
@@ -353,3 +331,8 @@ The Rust backend exposes a provider registry. Each provider implements the same
 validation and fetch interface, so the frontend can render snapshots without
 special-case provider logic. The scheduler polls configured accounts, writes
 usage history, and emits live updates to the Tauri frontend.
+
+## License
+
+TokenMaxxer is released under the MIT License. See [LICENSE](LICENSE) for
+details.

@@ -585,7 +585,7 @@ function SettingsPanel({
           <div>
             <h2 className="text-base font-bold">Settings</h2>
             <p className="mt-1 text-xs text-[var(--text-muted)]">
-              Display and updater controls for this desktop.
+              Display controls and release checks for this desktop.
             </p>
           </div>
           <button
@@ -645,7 +645,7 @@ function SettingsPanel({
                 </div>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">
                   {updateMessage ??
-                    "Check the signed TokenMaxxer release channel for an update."}
+                    "Preview builds update manually from GitHub unless a signed updater release is published."}
                 </p>
               </div>
 
@@ -695,8 +695,12 @@ function SettingsPanel({
 function formatUpdateError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
 
+  if (/404|not found|latest\.json/i.test(message)) {
+    return "No signed updater manifest is published for this preview. Download newer preview builds manually from GitHub Releases.";
+  }
+
   if (/REPLACE_WITH_TAURI|pubkey|public key|signature|signing/i.test(message)) {
-    return "Updates are waiting on a signed release key for this build.";
+    return "Automatic updates need a signed updater release. Download preview builds manually from GitHub Releases.";
   }
 
   return `Update check failed: ${message}`;

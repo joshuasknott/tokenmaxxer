@@ -88,14 +88,19 @@ jobs:
       - name: Determine release mode
         shell: bash
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+          if [[ "$GITHUB_REF" == refs/tags/v0.* ]]; then
+            echo "PRODUCTION_RELEASE=false" >> "$GITHUB_ENV"
+            echo "PREVIEW_RELEASE=true" >> "$GITHUB_ENV"
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
             echo "PRODUCTION_RELEASE=true" >> "$GITHUB_ENV"
+            echo "PREVIEW_RELEASE=false" >> "$GITHUB_ENV"
           else
             echo "PRODUCTION_RELEASE=false" >> "$GITHUB_ENV"
+            echo "PREVIEW_RELEASE=false" >> "$GITHUB_ENV"
           fi
 
       - name: Verify production signing secrets
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') && !startsWith(github.ref_name, 'v0.')
         shell: bash
         run: |
           missing=0
@@ -146,7 +151,7 @@ jobs:
           APPLE_API_PRIVATE_KEY_BASE64: ${{ secrets.APPLE_API_PRIVATE_KEY_BASE64 }}
 
       - name: Import Windows code signing certificate
-        if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/')
+        if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/') && !startsWith(github.ref_name, 'v0.')
         shell: pwsh
         run: |
           $certDir = Join-Path $env:RUNNER_TEMP "codesign"
@@ -178,7 +183,7 @@ jobs:
           WINDOWS_CERTIFICATE_THUMBPRINT: ${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}
 
       - name: Import Apple Developer ID certificate
-        if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/')
+        if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/') && !startsWith(github.ref_name, 'v0.')
         shell: bash
         run: |
           certificate_path="$RUNNER_TEMP/developer-id.p12"
@@ -206,7 +211,7 @@ jobs:
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
 
       - name: Prepare Apple notarization API key
-        if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/')
+        if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/') && !startsWith(github.ref_name, 'v0.')
         shell: bash
         run: |
           api_key_path="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY}.p8"
@@ -265,7 +270,7 @@ jobs:
           esac
 
       - name: Verify Windows Authenticode signature
-        if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/')
+        if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/') && !startsWith(github.ref_name, 'v0.')
         shell: pwsh
         run: |
           $installer = Get-ChildItem -Path src-tauri/target/release/bundle/nsis -Filter *.exe | Select-Object -First 1
@@ -282,7 +287,7 @@ jobs:
           }
 
       - name: Verify macOS signing and notarization
-        if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/')
+        if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/') && !startsWith(github.ref_name, 'v0.')
         shell: bash
         run: |
           app_path="$(find src-tauri/target/universal-apple-darwin/release/bundle/macos -maxdepth 1 -name '*.app' -print -quit)"
@@ -338,19 +343,49 @@ jobs:
         with:
           path: release-artifacts
 
+      - name: Determine release mode
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v0.* ]]; then
+            echo "PRODUCTION_RELEASE=false" >> "$GITHUB_ENV"
+          else
+            echo "PRODUCTION_RELEASE=true" >> "$GITHUB_ENV"
+          fi
+
       - name: Prepare stable release asset names
-        run: node scripts/prepare-release-artifacts.mjs release-artifacts release-publish
+        shell: bash
+        run: |
+          if [ "$PRODUCTION_RELEASE" = "true" ]; then
+            node scripts/prepare-release-artifacts.mjs release-artifacts release-publish
+          else
+            node scripts/prepare-release-artifacts.mjs release-artifacts release-publish --allow-unsigned
+          fi
 
       - name: Generate updater manifest
+        if: startsWith(github.ref, 'refs/tags/') && !startsWith(github.ref_name, 'v0.')
         run: node scripts/create-updater-manifest.mjs release-publish latest.json
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_REF_NAME: ${{ github.ref_name }}
 
-      - name: Attach artifacts to release
+      - name: Attach signed artifacts to release
+        if: startsWith(github.ref, 'refs/tags/') && !startsWith(github.ref_name, 'v0.')
         uses: softprops/action-gh-release@v2
         with:
           files: |
             release-publish/**/*
             latest.json
+          fail_on_unmatched_files: true
+
+      - name: Attach unsigned preview artifacts to release
+        if: startsWith(github.ref, 'refs/tags/v0.')
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          body: |
+            TokenMaxxer public preview.
+
+            These are unsigned community builds. Windows SmartScreen and macOS Gatekeeper prompts are expected, and in-app automatic updates are not enabled for this preview.
+          files: |
+            release-publish/**/*
           fail_on_unmatched_files: true

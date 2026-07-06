@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { IconType } from "react-icons";
 import { FaApple, FaGithub, FaLinux, FaWindows } from "react-icons/fa";
 import {
@@ -61,22 +61,22 @@ type ProviderCoverage = {
 const platformOptions: PlatformOption[] = [
   {
     platform: "Windows",
-    artifact: "NSIS installer",
-    copy: "Download for Windows",
+    artifact: "Unsigned NSIS installer",
+    copy: "Windows preview",
     href: releaseAssetUrl("TokenMaxxer-Windows-x64-setup.exe"),
     Icon: FaWindows,
   },
   {
     platform: "macOS",
-    artifact: "Universal DMG",
-    copy: "Download for macOS",
+    artifact: "Unsigned universal DMG",
+    copy: "macOS preview",
     href: releaseAssetUrl("TokenMaxxer-macOS-universal.dmg"),
     Icon: FaApple,
   },
   {
     platform: "Linux",
-    artifact: "AppImage",
-    copy: "Download for Linux",
+    artifact: "Unsigned AppImage",
+    copy: "Linux preview",
     href: releaseAssetUrl("TokenMaxxer-Linux-x86_64.AppImage"),
     Icon: FaLinux,
   },
@@ -210,10 +210,12 @@ const securityRows = [
   ["Credentials", "Stored in OS secure storage where available."],
   ["Configuration", "Account labels and provider settings live in local config."],
   ["History", "Usage events and cost estimates stay in local history files."],
-  ["Updates", "Signed release checks happen through GitHub and Tauri."],
+  ["Updates", "Manual GitHub downloads in preview; signed updater checks when available."],
 ];
 
 export function MarketingPage() {
+  useHashTargetScroll();
+
   return (
     <main className="marketing-page">
       <SiteNav />
@@ -231,7 +233,7 @@ export function MarketingPage() {
             <div className="hero-actions" aria-label="Primary actions">
               <a className="hero-primary-action" href="#download">
                 <TbDownload aria-hidden="true" />
-                Download
+                Download preview
               </a>
               <a
                 className="hero-secondary-action"
@@ -369,6 +371,24 @@ export function MarketingPage() {
   );
 }
 
+function useHashTargetScroll() {
+  useEffect(() => {
+    const scrollToHash = () => {
+      const rawHash = window.location.hash.replace(/^#/, "");
+      if (!rawHash) return;
+
+      const targetId = decodeURIComponent(rawHash);
+      window.requestAnimationFrame(() => {
+        document.getElementById(targetId)?.scrollIntoView();
+      });
+    };
+
+    scrollToHash();
+    window.addEventListener("hashchange", scrollToHash);
+    return () => window.removeEventListener("hashchange", scrollToHash);
+  }, []);
+}
+
 function HeroProductVideo() {
   const [videoFailed, setVideoFailed] = useState(false);
 
@@ -435,7 +455,7 @@ export function ChangelogPage() {
             <div className="changelog-entry-head">
               <div>
                 <h2>No public releases yet</h2>
-                <p>Release notes will appear here after TokenMaxxer v1.0.0 is tagged.</p>
+                <p>Release notes will appear here after TokenMaxxer v0.1.0 is tagged.</p>
               </div>
             </div>
           </article>
@@ -469,7 +489,7 @@ export function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy Policy"
-      updated="Last updated June 18, 2026"
+      updated="Last updated July 5, 2026"
       sections={privacySections}
     />
   );
@@ -479,7 +499,7 @@ export function TermsPage() {
   return (
     <LegalPage
       title="Terms of Service"
-      updated="Last updated June 18, 2026"
+      updated="Last updated July 5, 2026"
       sections={termsSections}
     />
   );
@@ -596,9 +616,13 @@ const privacySections: LegalSection[] = [
     heading: "Software updates",
     body: (
       <ul>
-        <li>The app checks GitHub for signed updates using the Tauri updater plugin.</li>
+        <li>Public preview builds are updated manually from GitHub Releases.</li>
+        <li>
+          When a signed updater release is published, the app can check GitHub
+          using the Tauri updater plugin.
+        </li>
         <li>This check reveals your IP address to GitHub. No TokenMaxxer-specific identifier is sent.</li>
-        <li>Updates are cryptographically signed and verified before installation.</li>
+        <li>Signed updater packages are cryptographically verified before installation.</li>
       </ul>
     ),
   },
@@ -724,11 +748,11 @@ function DownloadSection() {
     <section id="download" className="marketing-section download-section">
       <div className="download-panel">
         <div className="download-panel-copy">
-          <h2>Download the desktop build.</h2>
+          <h2>Download the public preview.</h2>
           <p>
-            Pick the release asset for your OS. TokenMaxxer runs locally, keeps
-            credentials in local secure storage, and uses the GitHub release
-            channel for desktop packages.
+            Pick the unsigned release asset for your OS. TokenMaxxer runs
+            locally, keeps credentials in local secure storage, and uses GitHub
+            Releases for preview packages.
           </p>
         </div>
 
@@ -750,7 +774,8 @@ function DownloadSection() {
         </div>
 
         <p className="download-footnote">
-          Want the source instead? Review the MIT-licensed project on{" "}
+          Windows SmartScreen and macOS Gatekeeper prompts are expected for this
+          preview. Want the source instead? Review the MIT-licensed project on{" "}
           <a href={SOURCE_URL} rel="noreferrer" target="_blank">
             GitHub
           </a>

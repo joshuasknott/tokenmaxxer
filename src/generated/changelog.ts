@@ -14,7 +14,7 @@ type ChangelogData = {
 
 const changelog: ChangelogData = {
   "schemaVersion": 2,
-  "packageVersion": "1.0.0",
+  "packageVersion": "0.1.0",
   "entries": []
 };
 

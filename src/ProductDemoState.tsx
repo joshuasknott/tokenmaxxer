@@ -13,7 +13,7 @@ import { providerStyle } from "./lib/providerStyle";
 const productAccounts: AccountConfig[] = [
   { id: "codex-personal", label: "maya.chen@example.com", provider: "codex", authRef: "vault_codex" },
   { id: "antigravity-work", label: "liam.patel@example.com", provider: "antigravity", authRef: "vault_antigravity" },
-  { id: "deepseek-key", label: "DeepSeek production key", provider: "deepseek", authRef: "vault_deepseek" },
+  { id: "deepseek-key", label: "DeepSeek API key", provider: "deepseek", authRef: "vault_deepseek" },
   { id: "zai-coding", label: "Z.ai coding plan key", provider: "z_ai", authRef: "vault_zai" },
   { id: "openrouter-credits", label: "OpenRouter routing key", provider: "openrouter", authRef: "vault_openrouter" },
   { id: "openai-org", label: "OpenAI platform org", provider: "openai_api", authRef: "vault_openai" },
@@ -41,7 +41,7 @@ const productProviders: ProviderDescriptor[] = [
   {
     kind: "deepseek",
     displayName: "DeepSeek API",
-    credentialDescription: "Track a production API key balance.",
+    credentialDescription: "Track an API key balance.",
   },
   {
     kind: "z_ai",
@@ -660,7 +660,7 @@ function DemoSettingsPanel() {
           <div>
             <h2 className="text-base font-bold">Settings</h2>
             <p className="mt-1 text-xs text-[var(--text-muted)]">
-              Display and updater controls for this desktop.
+              Display controls and release checks for this desktop.
             </p>
           </div>
           <button className="rounded-md px-2 py-1 text-sm font-semibold text-[var(--text-muted)] hover:bg-[var(--bg-elev-2)] hover:text-[var(--text)]">

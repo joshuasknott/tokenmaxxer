@@ -1,7 +1,7 @@
 //! Codex (ChatGPT Plus) adapter.
 //!
-//! Reads the subscription Codex usage window — the real "5-hour primary + 7-day
-//! weekly" limit system — via the same endpoint the `codex` CLI uses:
+//! Reads the subscription Codex usage window - the real "5-hour primary + 7-day
+//! weekly" limit system - via the same endpoint the `codex` CLI uses:
 //!
 //!   GET https://chatgpt.com/backend-api/wham/usage
 //!   Authorization: Bearer <access_token>   (from ~/.codex/auth.json)
@@ -10,7 +10,7 @@
 //! profile. Codex itself owns refresh-token rotation and writes any update back
 //! to that profile; the app never copies or refreshes Codex credentials.
 //!
-//! Response shape (`RateLimitStatusPayload`) — primary_window is the 5h window,
+//! Response shape (`RateLimitStatusPayload`) - primary_window is the 5h window,
 //! secondary_window is the weekly window. Each carries `used_percent`,
 //! `limit_window_seconds`, and `reset_at` (unix seconds).
 

@@ -2,8 +2,11 @@ import { copyFile, mkdir, readdir, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { releaseAssets } from "./release-assets.mjs";
 
+const args = process.argv.slice(2);
+const allowUnsigned = args.includes("--allow-unsigned");
+const positional = args.filter((arg) => arg !== "--allow-unsigned");
 const [sourceRoot = "release-artifacts", outputRoot = "release-publish"] =
-  process.argv.slice(2);
+  positional;
 
 async function walk(dir) {
   const entries = await readdir(dir);
@@ -61,7 +64,7 @@ const files = await walk(sourceRoot);
 await copyArtifact(
   findFile(files, /\.exe$/i, "Windows installer"),
   releaseAssets.windowsInstaller,
-  { requireSignature: true }
+  { requireSignature: !allowUnsigned }
 );
 
 await copyArtifact(
@@ -69,16 +72,18 @@ await copyArtifact(
   releaseAssets.macosDmg
 );
 
-await copyArtifact(
-  findFile(files, /\.app\.tar\.gz$/i, "macOS updater archive"),
-  releaseAssets.macosUpdaterArchive,
-  { requireSignature: true }
-);
+if (!allowUnsigned) {
+  await copyArtifact(
+    findFile(files, /\.app\.tar\.gz$/i, "macOS updater archive"),
+    releaseAssets.macosUpdaterArchive,
+    { requireSignature: true }
+  );
+}
 
 await copyArtifact(
   findFile(files, /\.AppImage$/i, "Linux AppImage"),
   releaseAssets.linuxAppImage,
-  { requireSignature: true }
+  { requireSignature: !allowUnsigned }
 );
 
 await copyArtifact(

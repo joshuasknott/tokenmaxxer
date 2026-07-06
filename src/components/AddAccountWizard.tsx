@@ -43,8 +43,8 @@ type ConnectionInfo = {
 
 const CONNECTION_INFO: Record<ProviderKind, ConnectionInfo> = {
   codex: {
-    method: "Guided sign-in",
-    accountCopy: "You can add as many Codex accounts as you need. Each one stays separate.",
+    method: "Guided sign-in (Windows)",
+    accountCopy: "Guided Codex setup currently works in the Windows app. Each Codex account stays in its own isolated profile.",
   },
   antigravity: {
     method: "Direct connector",
@@ -102,6 +102,9 @@ function friendlyError(raw: string): string {
   }
   if (/Could not find the Codex command/i.test(s)) {
     return "TokenMaxxer could not find the Codex command. Open Codex once, or install the Codex CLI, then try again.";
+  }
+  if (/Guided Codex sign-in is currently available in the Windows app/i.test(s)) {
+    return "Guided Codex sign-in is currently available only in the Windows app. macOS and Linux setup need a future launcher path.";
   }
   if (/OpenAI.*(401|403|invalid credentials|insufficient permissions|api\.usage\.read)/i.test(s)) {
     return (
@@ -550,7 +553,7 @@ function CodexProfileSetup({
             <li>Sign in with the ChatGPT/Codex account you want to track.</li>
             <li>Return here and click <span className="font-semibold text-[var(--text)]">I Finished Signing In</span>.</li>
           </ol>
-          <p>Existing Codex accounts will not be changed.</p>
+          <p>This guided setup is currently Windows-only. Existing Codex accounts will not be changed.</p>
         </div>
         {error && <p className="text-xs text-red-400">{error}</p>}
         <button type="button" onClick={startSignIn} disabled={isPreparing} className="btn-primary">

@@ -62,9 +62,12 @@ attention.
 
 Manual platform checks are still required for:
 
-- macOS `.app` launch, DMG mount/install, Developer ID signing, notarization,
-  and updater flow on a real or remote Mac.
+- macOS `.app` launch and DMG mount/install on a real or remote Mac. The
+  `v0.1.0` public preview is unsigned and not notarized, so Gatekeeper friction
+  is expected. Developer ID signing, notarization, and updater flow are future
+  signed-release checks.
 - Linux AppImage and `.deb` install/uninstall plus Secret Service persistence in
   a real Linux desktop session or VM with GNOME Keyring/KWallet.
-- Windows Smart App Control behavior, because that depends on the local Windows
-  security posture and release signing reputation.
+- Windows SmartScreen or Smart App Control behavior, because that depends on the
+  local Windows security posture and release signing reputation. Prompts are
+  expected for unsigned preview installers.

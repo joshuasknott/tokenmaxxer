@@ -1,9 +1,110 @@
-# TokenMaxxer v1.0.0 Release Checklist
+# TokenMaxxer Public Preview Release Checklist
 
-Use this checklist for the first public `v1.0.0` release and every signed
-Tauri updater release after it.
+Use this checklist for the unsigned community `v0.1.0` preview. It keeps the
+future signed updater release path documented, but the preview itself should not
+require paid code signing, Apple notarization, app-store registration, or a
+production updater manifest.
 
-## 1. Updater Signing Key
+## 1. Version Choice
+
+The public preview should be `v0.1.0`, not `v1.0.0`.
+
+Why:
+
+- No public releases have been tagged yet.
+- The first GitHub audience is developers and early users, not a commercial
+  distribution channel.
+- Unsigned Windows and macOS builds have real operating system friction.
+- Several provider integrations depend on live provider APIs or direct
+  behavior that can change.
+
+Confirm these versions match before tagging:
+
+- `package.json` version is `0.1.0`
+- `src-tauri/tauri.conf.json` version is `0.1.0`
+- `src-tauri/Cargo.toml` version is `0.1.0`
+- the preview tag will be `v0.1.0`
+
+## 2. Local Preflight
+
+Run these checks before creating the preview tag:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm build
+pnpm lint
+cd src-tauri
+cargo test
+```
+
+Unsigned package smoke tests do not require signing secrets. Run the command for
+the operating system you are currently on:
+
+```bash
+pnpm package:windows
+pnpm package:macos
+pnpm package:linux
+```
+
+## 3. Preview Build Behavior
+
+Preview builds use the `package:*` scripts. They set `--no-sign` and load
+`src-tauri/tauri.dev.conf.json`, which disables Tauri updater artifacts.
+
+Expected unsigned preview assets:
+
+- `TokenMaxxer-Windows-x64-setup.exe`
+- `TokenMaxxer-macOS-universal.dmg`
+- `TokenMaxxer-Linux-x86_64.AppImage`
+- `TokenMaxxer-Linux-x86_64.deb`
+
+Do not attach `latest.json` to the unsigned preview release. Tauri updater
+artifacts must be signed, and pretending unsigned packages can use the same
+automatic updater path will produce confusing install failures.
+
+## 4. GitHub Actions Preview Release
+
+The `Release packages` workflow has three modes:
+
+- `workflow_dispatch`: unsigned dry packaging using `package:*`.
+- `v0.*` tag push: unsigned public preview packaging and GitHub release asset
+  publishing. This path omits updater signatures and `latest.json`.
+- other `v*` tag push: strict signed production packaging using `release:*`.
+
+For the `v0.1.0` preview:
+
+1. Verify the local preflight above.
+2. Create a GitHub release tag only after the repo content is ready:
+
+   ```bash
+   git tag v0.1.0
+   git push origin v0.1.0
+   ```
+
+3. Wait for the `Release packages` workflow to finish.
+4. Verify the release is marked as a prerelease and contains the four unsigned
+   preview assets listed above.
+5. Open the marketing page download links and confirm they resolve to the
+   `/releases/latest/download/...` files after GitHub marks the preview as the
+   latest release.
+
+Do not push the tag until you are ready to publish the GitHub release. Do not
+commit or upload signing secrets.
+
+## 5. Manual Platform Checks
+
+Unsigned preview artifacts still need hands-on checks:
+
+- Windows: install the NSIS `.exe`, confirm SmartScreen or Smart App Control
+  prompts are understandable, launch the app, add/remove a non-secret test
+  account where possible, and uninstall.
+- macOS: mount the DMG, move the app, confirm Gatekeeper friction is expected
+  for an unsigned non-notarized build, launch after manual approval, and remove
+  the app.
+- Linux: run the AppImage, install/uninstall the `.deb`, and verify Secret
+  Service persistence in a real desktop session with GNOME Keyring or KWallet.
+
+## 6. Updater Signing Key For Future Releases
 
 The public updater key is committed in `src-tauri/tauri.conf.json` at
 `plugins.updater.pubkey`. The matching private key must never be committed.
@@ -33,10 +134,10 @@ Then:
 If this private key or password is lost, already-installed apps cannot accept
 future updater packages signed by a different key.
 
-## 2. Platform Signing Secrets
+## 7. Platform Signing Secrets For Future Production Releases
 
-Tag-triggered production builds require the updater secrets above plus these
-platform secrets.
+Signed production builds require the updater secrets above plus these platform
+secrets.
 
 Windows Authenticode:
 
@@ -69,39 +170,11 @@ openssl base64 -A -in developer-id.p12 -out developer-id.base64.txt
 openssl base64 -A -in AuthKey_ABC123DEF4.p8 -out apple-api-key.base64.txt
 ```
 
-Linux packages do not require a separate platform certificate. The release
-workflow still signs Linux updater artifacts with the Tauri updater key and
-validates Debian package metadata.
+Linux packages do not require a separate platform certificate. Production
+release workflows still sign Linux updater artifacts with the Tauri updater key
+and validate Debian package metadata.
 
-## 3. Local Preflight
-
-Run these checks before creating the release tag:
-
-```bash
-pnpm install --frozen-lockfile
-pnpm build
-pnpm lint
-cd src-tauri
-cargo test
-```
-
-Confirm these versions match:
-
-- `package.json` version is `1.0.0`
-- `src-tauri/tauri.conf.json` version is `1.0.0`
-- the release tag will be `v1.0.0`
-
-Unsigned package smoke tests do not require signing secrets:
-
-```bash
-pnpm package:windows
-pnpm package:macos
-pnpm package:linux
-```
-
-Run only the command for the operating system you are currently on.
-
-## 4. Local Signing Verification
+## 8. Local Signing Verification For Future Production Releases
 
 For production updater artifacts, export the updater key before running a
 `release:*` command:
@@ -168,27 +241,9 @@ dpkg-deb --field "$DEB_PATH" Package Version Section Priority Maintainer Depends
 dpkg-deb --contents "$DEB_PATH" | grep '/usr/share/applications/.*\.desktop$'
 ```
 
-## 5. GitHub Actions Production Release
+## 9. Expected Production Updater Assets
 
-The `Release packages` workflow has two modes:
-
-- `workflow_dispatch`: unsigned dry packaging using `package:*`
-- `v*` tag push: strict production packaging using `release:*`
-
-Tag builds fail early if required secrets are missing. After building, the
-workflow verifies:
-
-- Windows installer exists, has a Tauri updater `.sig`, and has a valid
-  Authenticode signature
-- macOS DMG, `.app`, updater archive, and updater `.sig` exist; the `.app` is
-  code-signature valid and both `.app` and DMG have stapled notarization tickets
-- Linux AppImage, AppImage updater `.sig`, and `.deb` exist; the `.deb` has the
-  expected package name, section, priority, maintainer, WebKit dependency, and
-  desktop entry
-
-## 6. Expected Release Assets
-
-The workflow publishes these stable filenames:
+Future signed updater releases publish these stable filenames:
 
 - `TokenMaxxer-Windows-x64-setup.exe`
 - `TokenMaxxer-Windows-x64-setup.exe.sig`
@@ -201,25 +256,5 @@ The workflow publishes these stable filenames:
 - `latest.json`
 
 The updater manifest must point at those stable asset names, not the raw Tauri
-bundle filenames. `scripts/create-updater-manifest.mjs` enforces this.
-
-## 7. Publish
-
-Create and push the release tag only after the local preflight and secrets are
-ready:
-
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-After the workflow finishes, verify the GitHub release contains every expected
-asset above. Also open `latest.json` and confirm it maps:
-
-- `windows-x86_64` to `TokenMaxxer-Windows-x64-setup.exe`
-- `darwin-x86_64` and `darwin-aarch64` to
-  `TokenMaxxer-macOS-universal.app.tar.gz`
-- `linux-x86_64` to `TokenMaxxer-Linux-x86_64.AppImage`
-
-The marketing page download links use the matching
-`/releases/latest/download/...` URLs for Windows, macOS, and Linux.
+bundle filenames. `scripts/create-updater-manifest.mjs` enforces this for
+signed releases only.

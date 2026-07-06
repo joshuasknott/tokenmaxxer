@@ -6,7 +6,7 @@ Scope: providers with official documentation or directly observable provider beh
 
 ## Recommendation Summary
 
-| Priority | Provider | v1.0.0 recommendation | Why |
+| Priority | Provider | v0.1.0 public preview recommendation | Why |
 | --- | --- | --- | --- |
 | P0 | OpenRouter | Ship | Strongest consumer-friendly API surface: key credits, generation costs, per-response usage, and documented rate/credit checks. |
 | P0 | DeepSeek | Keep/ship | Official balance endpoint already matches TokenMaxxer's `balance_gbp` shape. |
@@ -26,7 +26,7 @@ Scope: providers with official documentation or directly observable provider beh
 
 ## Implementation Status
 
-Implemented for v1.0.0:
+Implemented for the v0.1.0 public preview:
 
 - OpenRouter: account/key credit and usage snapshot from official `/credits` and `/key` APIs.
 - OpenAI API: organization completions usage plus organization costs from Admin API.
@@ -40,11 +40,11 @@ Implemented for v1.0.0:
 - Fireworks AI: official billing metrics CSV exported by `firectl`.
 - DeepSeek and Z.ai remain supported by the existing adapters.
 
-Deliberately not implemented for v1.0.0: Gemini API-key-only, Mistral, and Together AI. The matrix below keeps them in the backlog because the researched public surfaces do not yet expose enough reliable usage, quota, or balance data to produce a truthful TokenMaxxer snapshot.
+Deliberately not implemented for the v0.1.0 public preview: Gemini API-key-only, Mistral, and Together AI. The matrix below keeps them in the backlog because the researched public surfaces do not yet expose enough reliable usage, quota, or balance data to produce a truthful TokenMaxxer snapshot.
 
 ## Implementation Matrix
 
-| Provider | Credential type | Usage/quota endpoint | Balance/spend endpoint | Rate-limit source | Privacy / security concerns | v1.0.0 viability |
+| Provider | Credential type | Usage/quota endpoint | Balance/spend endpoint | Rate-limit source | Privacy / security concerns | v0.1.0 preview viability |
 | --- | --- | --- | --- | --- | --- | --- |
 | OpenRouter | API key as `Authorization: Bearer`; management key required for `/credits` in current docs | Per-response `usage`; `GET https://openrouter.ai/api/v1/generation?id=...` returns token counts, model/provider, `total_cost`, region, etc. | `GET https://openrouter.ai/api/v1/credits` returns total credits and total usage; `GET https://openrouter.ai/api/v1/key` returns key credit limit and remaining credits. | Official limits page; free model limits; `/api/v1/key` for key status. | Routes prompts through OpenRouter and upstream providers; generation metadata includes user-agent, provider, origin, data region. BYOK/provider keys are sensitive. | Yes. Map credits to `balance_gbp` via FX or display native credits/USD. |
 | DeepSeek | API key as bearer token | No account-wide historical usage endpoint found; response usage can be captured only when TokenMaxxer observes requests. | `GET https://api.deepseek.com/user/balance` returns `is_available` plus `balance_infos` with currency and balances. | 429 errors documented; no quota API found beyond balance. | Balance polling is low-content risk; API usage itself sends prompts to DeepSeek. | Yes; already implemented. |
