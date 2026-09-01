@@ -305,7 +305,7 @@ jobs:
           deb_path="$(find src-tauri/target/release/bundle/deb -maxdepth 1 -name '*.deb' -print -quit)"
 
           dpkg-deb --field "$deb_path" Package Version Section Priority Maintainer Depends
-          test "$(dpkg-deb --field "$deb_path" Package)" = "tokenmaxxer"
+          test "$(dpkg-deb --field "$deb_path" Package)" = "token-maxxer"
           test "$(dpkg-deb --field "$deb_path" Section)" = "utils"
           test "$(dpkg-deb --field "$deb_path" Priority)" = "optional"
           dpkg-deb --field "$deb_path" Maintainer | grep -q "Josh Knott"
