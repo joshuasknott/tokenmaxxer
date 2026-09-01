@@ -1,0 +1,17 @@
+.git/
+.github/
+.vercel/
+.playwright-cli/
+node_modules/
+dist/
+docs/
+output/
+release-artifacts/
+release-publish/
+remotion/
+src-tauri/
+
+.env
+.env.*
+*.log
+*.tsbuildinfo

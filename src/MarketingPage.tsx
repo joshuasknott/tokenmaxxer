@@ -389,8 +389,28 @@ function useHashTargetScroll() {
   }, []);
 }
 
+function usePrefersReducedMotion() {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() =>
+    typeof window === "undefined"
+      ? false
+      : window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const syncPreference = () => setPrefersReducedMotion(media.matches);
+
+    syncPreference();
+    media.addEventListener("change", syncPreference);
+    return () => media.removeEventListener("change", syncPreference);
+  }, []);
+
+  return prefersReducedMotion;
+}
+
 function HeroProductVideo() {
   const [videoFailed, setVideoFailed] = useState(false);
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   return (
     <figure className="hero-product-video" aria-label="TokenMaxxer product walkthrough video preview">
@@ -402,7 +422,7 @@ function HeroProductVideo() {
       </div>
 
       <div className="hero-video-stage">
-        {videoFailed ? (
+        {videoFailed || prefersReducedMotion ? (
           <img
             alt="TokenMaxxer dashboard showing provider cards, reset windows, and global usage trend."
             src={PRODUCT_SHOT_URL}

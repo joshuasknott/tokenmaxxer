@@ -105,9 +105,19 @@ mod platform {
     // ---- DPAPI via the Windows API ----
 
     mod dpapi {
+        use windows::Win32::Foundation::{LocalFree, HLOCAL};
         use windows::Win32::Security::Cryptography::{
             CryptProtectData, CryptUnprotectData, CRYPT_INTEGER_BLOB,
         };
+
+        unsafe fn copy_and_free(blob: CRYPT_INTEGER_BLOB) -> std::io::Result<Vec<u8>> {
+            let bytes = std::slice::from_raw_parts(blob.pbData, blob.cbData as usize).to_vec();
+            let free_result = LocalFree(Some(HLOCAL(blob.pbData.cast())));
+            if !free_result.0.is_null() {
+                return Err(std::io::Error::last_os_error());
+            }
+            Ok(bytes)
+        }
 
         pub fn encrypt(plaintext: &[u8]) -> std::io::Result<Vec<u8>> {
             unsafe {
@@ -120,11 +130,9 @@ mod platform {
                     pbData: std::ptr::null_mut(),
                 };
                 CryptProtectData(&in_blob, None, None, None, None, 0, &mut out_blob)
-                    .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+                    .map_err(|e| std::io::Error::other(e.to_string()))?;
 
-                // Kept consistent with the existing implementation: the
-                // process owns a small DPAPI output buffer for its lifetime.
-                Ok(std::slice::from_raw_parts(out_blob.pbData, out_blob.cbData as usize).to_vec())
+                copy_and_free(out_blob)
             }
         }
 
@@ -139,9 +147,9 @@ mod platform {
                     pbData: std::ptr::null_mut(),
                 };
                 CryptUnprotectData(&in_blob, None, None, None, None, 0, &mut out_blob)
-                    .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+                    .map_err(|e| std::io::Error::other(e.to_string()))?;
 
-                Ok(std::slice::from_raw_parts(out_blob.pbData, out_blob.cbData as usize).to_vec())
+                copy_and_free(out_blob)
             }
         }
     }

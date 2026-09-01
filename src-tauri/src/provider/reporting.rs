@@ -84,7 +84,7 @@ pub fn optional_cost_gbp(creds: &Credentials) -> Option<f64> {
         .or_else(|| optional_f64(creds, "period_cost_usd").map(usd_to_gbp))
 }
 
-pub fn number_at<'a>(value: &'a Value, path: &[&str]) -> Option<f64> {
+pub fn number_at(value: &Value, path: &[&str]) -> Option<f64> {
     let mut current = value;
     for key in path {
         current = current.get(*key)?;

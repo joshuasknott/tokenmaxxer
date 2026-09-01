@@ -25,6 +25,35 @@ use serde::{Deserialize, Serialize};
 
 pub mod cost;
 
+macro_rules! impl_provider_defaults {
+    ($($provider:ty),+ $(,)?) => {
+        $(
+            impl Default for $provider {
+                fn default() -> Self {
+                    Self::new()
+                }
+            }
+        )+
+    };
+}
+
+impl_provider_defaults!(
+    anthropic_api::AnthropicApiProvider,
+    antigravity_remote::AntigravityRemoteProvider,
+    aws_bedrock::AwsBedrockProvider,
+    azure_openai::AzureOpenAiProvider,
+    claude_code::ClaudeCodeProvider,
+    codex::CodexProvider,
+    contextual_ai::ContextualAiProvider,
+    cursor::CursorProvider,
+    deepseek::DeepSeekProvider,
+    fireworks::FireworksProvider,
+    openai_api::OpenAiApiProvider,
+    openrouter::OpenRouterProvider,
+    x_ai::XAiProvider,
+    z_ai::ZAiProvider,
+);
+
 /// The provider kind. Stored in config.json per account.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

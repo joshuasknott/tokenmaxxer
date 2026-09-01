@@ -1382,7 +1382,7 @@ body {
   }
 
   .marketing-nav nav a {
-    min-height: 2.45rem;
+    min-height: 44px;
     padding: 0.6rem 0.72rem;
     white-space: nowrap;
   }
@@ -1599,7 +1599,7 @@ body {
 .nav-brand {
   display: inline-flex;
   min-width: 0;
-  min-height: 2.75rem;
+  min-height: 44px;
   align-items: center;
   gap: 0.62rem;
   color: var(--mk-ink);
@@ -2223,7 +2223,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   margin-top: 1.25rem;
   color: var(--mk-blue);
   font-size: 0.9rem;
@@ -2445,7 +2445,7 @@ body {
 .download-footnote a {
   display: inline-flex;
   align-items: center;
-  min-height: 2.25rem;
+  min-height: 44px;
   color: var(--mk-blue);
   font-weight: 760;
 }
@@ -2520,7 +2520,7 @@ body {
 .footer-col a {
   display: inline-flex;
   align-items: center;
-  min-height: 2.5rem;
+  min-height: 44px;
   color: var(--mk-soft-ink);
   font-size: 0.88rem;
   font-weight: 620;
@@ -2751,10 +2751,6 @@ body {
     gap: 1.35rem;
   }
 
-  .hero-product-video {
-    order: -1;
-  }
-
   .hero-copy h1 {
     max-width: 12ch;
     font-size: clamp(2.55rem, 12vw, 3.25rem);
@@ -2866,13 +2862,22 @@ body {
   }
 
   .download-menu summary {
-    min-height: 2.45rem;
+    min-height: 44px;
     padding: 0.62rem 0.72rem;
     font-size: 0.8rem;
   }
 
+  .nav-links {
+    justify-content: space-between;
+    gap: 0;
+    overflow-x: visible;
+  }
+
+  .nav-links a:nth-child(2) {
+    display: none;
+  }
+
   .nav-links a {
-    min-height: 2.15rem;
     padding: 0.48rem 0.55rem;
     font-size: 0.78rem;
   }
