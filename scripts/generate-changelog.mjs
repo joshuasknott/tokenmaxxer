@@ -35,6 +35,24 @@ async function loadCuratedNotes() {
   }
 }
 
+async function loadCommittedData(packageVersion) {
+  try {
+    const raw = await readFile(outputJsonPath, "utf8");
+    const data = JSON.parse(raw);
+
+    if (data?.schemaVersion !== 2 || !Array.isArray(data.entries)) {
+      return null;
+    }
+
+    return {
+      ...data,
+      packageVersion,
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function dateForRef(ref) {
   return runGit(["log", "-1", "--format=%as", ref]);
 }
@@ -43,6 +61,12 @@ async function buildEntries() {
   const packageJson = JSON.parse(await readFile("package.json", "utf8"));
   const tagsRaw = await runGit(["tag", "--list", "v*", "--sort=creatordate"]);
   const tags = tagsRaw ? tagsRaw.split("\n").filter(Boolean) : [];
+
+  if (tags.length === 0) {
+    const committedData = await loadCommittedData(packageJson.version);
+    if (committedData) return committedData;
+  }
+
   const curated = await loadCuratedNotes();
   const entries = [];
 
