@@ -310,7 +310,13 @@ jobs:
           test "$(dpkg-deb --field "$deb_path" Priority)" = "optional"
           dpkg-deb --field "$deb_path" Maintainer | grep -q "Josh Knott"
           dpkg-deb --field "$deb_path" Depends | grep -q "libwebkit2gtk-4.1-0"
-          dpkg-deb --contents "$deb_path" | grep "/usr/share/applications/.*\\.desktop$" >/dev/null
+
+          deb_extract="$(mktemp -d)"
+          trap 'rm -rf "$deb_extract"' EXIT
+          dpkg-deb --extract "$deb_path" "$deb_extract"
+          desktop_entry="$(find "$deb_extract/usr/share/applications" -maxdepth 1 -name '*.desktop' -print -quit)"
+          test -n "$desktop_entry"
+          echo "Desktop entry: $desktop_entry"
 
       - name: Zip macOS app bundle
         if: runner.os == 'macOS'
