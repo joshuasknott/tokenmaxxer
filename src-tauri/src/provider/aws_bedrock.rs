@@ -316,7 +316,10 @@ mod tests {
     #[test]
     fn hmac_sha256_matches_known_signature() {
         assert_eq!(
-            hex::encode(hmac_sha256(b"key", "The quick brown fox jumps over the lazy dog")),
+            hex::encode(hmac_sha256(
+                b"key",
+                "The quick brown fox jumps over the lazy dog"
+            )),
             "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8"
         );
     }
